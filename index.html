@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full bg-slate-950">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#090d16">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KoppCard">
+  <meta name="description" content="Offline-fähiger Punktezähler für das Kartenspiel KoppCard mit Pyramiden-Modus und automatischer Ansagen-Validierung.">
+  <title>KoppCard - Punktezähler PWA</title>
+
+  <!-- Embedded SVG App Icon for Browser Tabs & PWA -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%230f172a'/%3E%3Cpath d='M256 90c-40 65-105 140-105 185 0 58 47 105 105 105s105-47 105-105c0-45-65-120-105-185z' fill='%2310b981'/%3E%3Cpath d='M220 360h72l-16 62h-40z' fill='%2310b981'/%3E%3Ccircle cx='256' cy='230' r='32' fill='%230f172a'/%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%230f172a'/%3E%3Cpath d='M256 90c-40 65-105 140-105 185 0 58 47 105 105 105s105-47 105-105c0-45-65-120-105-185z' fill='%2310b981'/%3E%3Cpath d='M220 360h72l-16 62h-40z' fill='%2310b981'/%3E%3Ccircle cx='256' cy='230' r='32' fill='%230f172a'/%3E%3C/svg%3E">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            pixel: {
+              surface: '#0f172a',
+              surfaceContainer: '#162036',
+              surfaceHigh: '#1e2c4a',
+              primary: '#10b981',
+              primaryDark: '#059669',
+              accent: '#38bdf8'
+            }
+          },
+          boxShadow: {
+            'elevation-1': '0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.6)',
+            'elevation-2': '0 4px 6px -1px rgba(0,0,0,0.5), 0 2px 4px -2px rgba(0,0,0,0.5)',
+            'elevation-3': '0 10px 15px -3px rgba(0,0,0,0.6), 0 4px 6px -4px rgba(0,0,0,0.6)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input {
+      user-select: text;
+    }
+    .tap-target {
+      min-height: 48px;
+      min-width: 48px;
+    }
+    .pixel-tap {
+      transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s ease;
+    }
+    .pixel-tap:active {
+      transform: scale(0.96);
+    }
+    .safe-top {
+      padding-top: max(env(safe-area-inset-top), 12px);
+    }
+    .safe-bottom {
+      padding-bottom: max(env(safe-area-inset-bottom), 16px);
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    body {
+      scrollbar-width: none;
+    }
+  </style>
+
+  <script>
+    // 1. Inject self-contained Web App Manifest
+    (function injectManifest() {
+      const iconSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%230f172a'/%3E%3Cpath d='M256 90c-40 65-105 140-105 185 0 58 47 105 105 105s105-47 105-105c0-45-65-120-105-185z' fill='%2310b981'/%3E%3Cpath d='M220 360h72l-16 62h-40z' fill='%2310b981'/%3E%3Ccircle cx='256' cy='230' r='32' fill='%230f172a'/%3E%3C/svg%3E`;
+      const manifestObject = {
+        name: "KoppCard Punktezähler",
+        short_name: "KoppCard",
+        start_url: window.location.href,
+        display: "standalone",
+        background_color: "#090d16",
+        theme_color: "#090d16",
+        orientation: "portrait",
+        description: "Mobile-optimierter Punktezähler für das Kartenspiel KoppCard.",
+        icons: [
+          {
+            src: iconSvg,
+            sizes: "192x192 512x512",
+            type: "image/svg+xml",
+            purpose: "any maskable"
+          }
+        ]
+      };
+      const manifestBlob = new Blob([JSON.stringify(manifestObject)], { type: 'application/json' });
+      const manifestUrl = URL.createObjectURL(manifestBlob);
+      const manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = manifestUrl;
+      document.head.appendChild(manifestLink);
+    })();
+
+    // 2. Register inline Service Worker via Blob URL
+    if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => {
+        const swScript = `
+          const CACHE_NAME = 'koppcard-cache-v1';
+          const STATIC_RESOURCES = [
+            'https://cdn.tailwindcss.com'
+          ];
+
+          self.addEventListener('install', (event) => {
+            event.waitUntil(
+              caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_RESOURCES)).catch(() => {})
+            );
+            self.skipWaiting();
+          });
+
+          self.addEventListener('activate', (event) => {
+            event.waitUntil(
+              caches.keys().then((keys) => Promise.all(
+                keys.map((k) => { if (k !== CACHE_NAME) return caches.delete(k); })
+              ))
+            );
+            self.clients.claim();
+          });
+
+          self.addEventListener('fetch', (event) => {
+            if (event.request.method !== 'GET') return;
+            event.respondWith(
+              caches.match(event.request).then((cached) => {
+                if (cached) return cached;
+                return fetch(event.request).then((res) => {
+                  if (!res || res.status !== 200) return res;
+                  const resClone = res.clone();
+                  caches.open(CACHE_NAME).then((c) => c.put(event.request, resClone));
+                  return res;
+                }).catch(() => cached);
+              })
+            );
+          });
+        `;
+        const blob = new Blob([swScript], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swUrl)
+          .then((reg) => console.log('KoppCard Service Worker aktiv:', reg.scope))
+          .catch((err) => console.log('Service Worker Registrierung fehlgeschlagen:', err));
+      });
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-full font-sans antialiased flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
+
+  <header class="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 shadow-elevation-1 safe-top">
+    <div class="max-w-lg mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-lg select-none shadow-inner">
+          <span class="text-emerald-400 font-bold">♠</span>
+        </div>
+        <div>
+          <span class="text-lg font-black tracking-wide text-white block leading-none">KoppCard</span>
+          <span id="headerRoundBadge" class="hidden text-[11px] font-bold text-emerald-400">
+            Runde <span id="curRoundHeader">1</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- PWA Install Button (automatically shows when installable) -->
+        <button id="btnInstallApp" type="button" class="hidden pixel-tap tap-target px-3 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-black border border-emerald-500/40 shadow-sm flex items-center gap-1.5 animate-pulse">
+          <span>📲</span> Installieren
+        </button>
+        <button id="btnRulesModal" type="button" class="pixel-tap tap-target px-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700/80 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700/80 shadow-sm">
+          <span class="text-emerald-400 text-sm font-black">?</span> Regeln
+        </button>
+        <button id="btnResetGame" type="button" class="hidden pixel-tap tap-target px-3.5 rounded-2xl bg-red-950/60 hover:bg-red-900/80 text-red-300 text-xs font-bold border border-red-800/60 shadow-sm flex items-center justify-center">
+          Neu
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-lg w-full mx-auto p-4 flex flex-col gap-4">
+
+    <!-- SETUP VIEW -->
+    <section id="setupView" class="bg-slate-900 border border-slate-800/90 rounded-3xl p-5 shadow-elevation-2 flex flex-col gap-5">
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+        <div>
+          <h1 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>🎴</span> Neues Spiel
+          </h1>
+          <p class="text-xs text-slate-400 mt-0.5" id="setupSummaryText">1 ➔ 8 ➔ 1 Karten (15 Runden)</p>
+        </div>
+        <span class="text-xs bg-emerald-500/10 text-emerald-400 font-bold px-3 py-1.5 rounded-full border border-emerald-500/30">
+          32 Skat
+        </span>
+      </div>
+
+      <!-- Player Count Segmented Buttons -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Spieleranzahl</label>
+        <div class="grid grid-cols-4 gap-2" id="playerCountButtons">
+          <button type="button" data-cnt="3" class="btn-player-cnt pixel-tap h-14 rounded-2xl border-2 font-black text-base flex items-center justify-center transition bg-slate-800 border-slate-700 text-slate-300">3</button>
+          <button type="button" data-cnt="4" class="btn-player-cnt pixel-tap h-14 rounded-2xl border-2 font-black text-base flex items-center justify-center transition bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-950">4</button>
+          <button type="button" data-cnt="5" class="btn-player-cnt pixel-tap h-14 rounded-2xl border-2 font-black text-base flex items-center justify-center transition bg-slate-800 border-slate-700 text-slate-300">5</button>
+          <button type="button" data-cnt="6" class="btn-player-cnt pixel-tap h-14 rounded-2xl border-2 font-black text-base flex items-center justify-center transition bg-slate-800 border-slate-700 text-slate-300">6</button>
+        </div>
+      </div>
+
+      <!-- Saved Names Chips & Player Inputs -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Spieler & Reihenfolge</label>
+          <span class="text-[11px] text-slate-500">Tippen zum Einfügen</span>
+        </div>
+
+        <!-- Chips -->
+        <div id="savedNamesChipsContainer" class="flex flex-wrap gap-2 mb-3.5"></div>
+        <!-- Input rows -->
+        <div class="space-y-2.5" id="playerInputsContainer"></div>
+      </div>
+
+      <button id="btnStartGame" type="button" class="pixel-tap w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-base rounded-2xl shadow-elevation-2 flex items-center justify-center gap-2 mt-2">
+        <span>Spiel starten</span>
+        <span class="text-xl">➔</span>
+      </button>
+    </section>
+
+    <div id="gameView" class="hidden flex flex-col gap-4">
+
+      <!-- Leaderboard Header with Scorecard Button -->
+      <section class="bg-slate-900 border border-slate-800/90 rounded-3xl p-3.5 shadow-elevation-1">
+        <div class="flex items-center justify-between mb-2.5 px-1">
+          <span class="text-xs uppercase tracking-wider font-bold text-slate-400 flex items-center gap-1.5">
+            <span>🏆</span> Zwischenstand
+          </span>
+          <button id="btnOpenScorecard" type="button" class="pixel-tap tap-target px-3.5 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1.5">
+            <span>📊</span> Scorecard
+          </button>
+        </div>
+        <div id="leaderboardBar" class="grid gap-2"></div>
+      </section>
+
+      <!-- Active Round Control Box -->
+      <section id="roundControlBox" class="bg-slate-900 border border-slate-800/90 rounded-3xl p-4 shadow-elevation-2 flex flex-col gap-3.5">
+        
+        <div class="flex items-center justify-between bg-slate-950/70 p-3 rounded-2xl border border-slate-800/60">
+          <div class="flex items-center gap-2">
+            <span id="roundNumberTitle" class="text-lg font-black text-white">Runde 1</span>
+            <span id="roundCardsBadge" class="text-xs bg-slate-800 text-emerald-400 font-bold px-2.5 py-1 rounded-xl border border-slate-700">
+              1 Karte
+            </span>
+            <span id="roundStirnBadge" class="hidden text-xs bg-amber-500/20 text-amber-300 font-bold px-2.5 py-1 rounded-xl border border-amber-500/40 flex items-center gap-1">
+              🎯 Stirn
+            </span>
+          </div>
+
+          <span id="phaseBadge" class="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300">
+            Ansage
+          </span>
+        </div>
+
+        <!-- Bidding Sub-Phase -->
+        <div id="phaseBiddingContainer" class="flex flex-col gap-3">
+          <div id="biddingInputsList" class="space-y-2.5"></div>
+          <div id="biddingNotice" class="text-xs rounded-2xl p-3 font-semibold hidden"></div>
+          <button id="btnConfirmBids" type="button" class="pixel-tap w-full h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base rounded-2xl shadow-elevation-2 flex items-center justify-center gap-2">
+            <span>Ansagen bestätigen</span> ➔
+          </button>
+        </div>
+
+        <!-- Stiche Sub-Phase -->
+        <div id="phaseResultsContainer" class="hidden flex flex-col gap-3">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-xs font-semibold text-slate-400">Gemachte Stiche eingeben:</span>
+            <button id="btnBackToBids" type="button" class="pixel-tap tap-target px-2 text-xs font-bold text-emerald-400 hover:underline flex items-center gap-1">
+              ✎ Ansagen ändern
+            </button>
+          </div>
+
+          <div id="actualInputsList" class="space-y-2.5"></div>
+          <div id="actualNotice" class="text-xs rounded-2xl p-3 font-semibold hidden"></div>
+
+          <button id="btnScoreRound" type="button" class="pixel-tap w-full h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base rounded-2xl shadow-elevation-2 flex items-center justify-center gap-2">
+            <span>Runde abrechnen</span> 🎯
+          </button>
+        </div>
+
+      </section>
+
+    </div>
+
+    <div id="gameFinishCard" class="hidden bg-slate-900 border-2 border-emerald-500 rounded-3xl p-6 shadow-elevation-3 text-center space-y-4">
+      <div class="w-16 h-16 rounded-full bg-emerald-500/10 border-2 border-emerald-500 flex items-center justify-center text-3xl mx-auto">
+        👑
+      </div>
+      <div>
+        <h2 class="text-xl font-black text-white">Spiel beendet!</h2>
+        <p id="winnerAnnouncement" class="text-emerald-400 font-extrabold text-base mt-1"></p>
+      </div>
+      <div id="finalScoresList" class="space-y-2.5 py-2 text-sm"></div>
+      <button id="btnRestartFromFinish" type="button" class="pixel-tap w-full h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base rounded-2xl shadow-elevation-2">
+        Neues Spiel starten
+      </button>
+    </div>
+
+  </main>
+
+  <div id="scorecardModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-slate-900 border-t sm:border border-slate-700/80 max-w-xl w-full rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] flex flex-col gap-3.5 shadow-2xl safe-bottom">
+      <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto sm:hidden mb-1"></div>
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <span>📊</span> Scorecard
+        </h3>
+        <div class="flex items-center gap-2">
+          <button id="btnUndoRound" type="button" class="pixel-tap tap-target hidden text-xs font-bold text-red-400 border border-red-900/60 bg-red-950/40 px-3 py-1.5 rounded-xl">
+            ↩ Runde zurück
+          </button>
+          <button id="btnCloseScorecard" type="button" class="pixel-tap tap-target text-slate-400 hover:text-white p-2 text-lg font-bold flex items-center justify-center">✕</button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto flex-1 pb-2">
+        <table class="w-full text-left text-xs border-collapse font-mono">
+          <thead>
+            <tr class="border-b border-slate-800 text-slate-400 text-[11px] uppercase tracking-wider font-semibold font-sans">
+              <th class="py-2.5 px-2 text-center w-10">Rd</th>
+              <th class="py-2.5 px-2 text-center w-10">🃏</th>
+              <th colspan="12" class="p-0">
+                <div id="headerPlayersFlex" class="grid divide-x divide-slate-800"></div>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="scoreTableBody" class="divide-y divide-slate-800/60"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rules Modal -->
+  <div id="rulesModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-slate-900 border-t sm:border border-slate-700 max-w-sm w-full rounded-t-3xl sm:rounded-3xl p-5 flex flex-col gap-3.5 text-slate-200 text-xs shadow-2xl safe-bottom">
+      <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto sm:hidden mb-1"></div>
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <span>📜</span> KoppCard Regeln
+        </h3>
+        <button id="btnCloseRules" type="button" class="pixel-tap tap-target text-slate-400 hover:text-white p-2 text-lg font-bold flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="space-y-2.5">
+        <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+          <span class="text-emerald-400 font-bold block mb-1 text-xs">🃏 Rangfolge (32 Skatkarten)</span>
+          <div class="text-xs font-bold text-center py-1 text-slate-300">
+            <span class="text-amber-500">♦ Karo</span> &lt; <span class="text-red-500">♥ Herz</span> &lt; <span class="text-slate-300">♠ Pik</span> &lt; <span class="text-emerald-400">♣ Kreuz</span>
+          </div>
+          <div class="text-[11px] text-slate-400 text-center font-mono mt-1">
+            7 &lt; 8 &lt; 9 &lt; 10 &lt; B &lt; D &lt; K &lt; Ass
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1 text-xs">
+          <span class="text-amber-400 font-bold block">🎯 Stirn-Runde (Runde 1 & letzte)</span>
+          <p class="text-slate-300 leading-relaxed">Karte ungesehen an die Stirn halten. Man sieht nur die gegnerischen Karten!</p>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1 text-xs">
+          <span class="text-red-400 font-bold block">🚫 Verbotene Ansagen-Summe</span>
+          <p class="text-slate-300 leading-relaxed">Die Summe aller Ansagen darf nicht der Kartenzahl entsprechen. Der Geber hat eine gesperrte Ansage.</p>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-1 text-xs">
+          <span class="text-white font-bold block">🏆 Punktevergabe</span>
+          <p class="text-slate-300 leading-relaxed">Ansage getroffen: <strong>+10 Punkte</strong> + 1 Punkt pro Stich.<br>Nicht getroffen: 1 Punkt pro erobertem Stich.</p>
+        </div>
+      </div>
+
+      <button id="btnCloseRulesBtn" type="button" class="pixel-tap h-12 w-full bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl text-xs transition mt-1">
+        Schließen
+      </button>
+    </div>
+  </div>
+
+  <!-- Reset Confirmation Modal -->
+  <div id="resetConfirmModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-red-500/40 max-w-xs w-full rounded-3xl p-5 flex flex-col gap-4 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-2xl bg-red-950/70 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto text-xl">
+        ⚠️
+      </div>
+      <div>
+        <h4 class="text-base font-bold text-white mb-1">Spiel neu starten?</h4>
+        <p class="text-xs text-slate-400 leading-relaxed">Das laufende Spiel wird abgebrochen. Gespeicherte Spielernamen bleiben erhalten.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-2.5 pt-1">
+        <button id="btnCancelReset" type="button" class="pixel-tap tap-target h-12 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl text-xs transition flex items-center justify-center">
+          Abbrechen
+        </button>
+        <button id="btnConfirmReset" type="button" class="pixel-tap tap-target h-12 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl text-xs transition shadow-md flex items-center justify-center">
+          Ja, Neu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY_STATE = 'koppcard_active_game_v3';
+    const STORAGE_KEY_NAMES = 'koppcard_saved_names_v3';
+    const DEFAULT_PRESET_NAMES = ['Christian', 'Tim', 'Marcus', 'Tobi', 'Jörn', 'Raphael'];
+
+    const state = {
+      playerCount: 4,
+      players: ['Christian', 'Tim', 'Marcus', 'Tobi'],
+      gameStarted: false,
+      maxCards: 8,
+      roundsSchedule: [],
+      currentRoundIndex: 0,
+      phase: 'bidding',
+      bids: [],
+      actuals: [],
+      history: []
+    };
+
+    // DOM Elements
+    const setupView = document.getElementById('setupView');
+    const setupSummaryText = document.getElementById('setupSummaryText');
+    const savedNamesChipsContainer = document.getElementById('savedNamesChipsContainer');
+    const gameView = document.getElementById('gameView');
+    const playerCountButtons = document.getElementById('playerCountButtons');
+    const playerInputsContainer = document.getElementById('playerInputsContainer');
+    const btnStartGame = document.getElementById('btnStartGame');
+    const btnResetGame = document.getElementById('btnResetGame');
+    const btnInstallApp = document.getElementById('btnInstallApp');
+    const headerRoundBadge = document.getElementById('headerRoundBadge');
+    const curRoundHeader = document.getElementById('curRoundHeader');
+    const roundNumberTitle = document.getElementById('roundNumberTitle');
+    const roundCardsBadge = document.getElementById('roundCardsBadge');
+    const roundStirnBadge = document.getElementById('roundStirnBadge');
+    const phaseBadge = document.getElementById('phaseBadge');
+    const phaseBiddingContainer = document.getElementById('phaseBiddingContainer');
+    const phaseResultsContainer = document.getElementById('phaseResultsContainer');
+    const biddingInputsList = document.getElementById('biddingInputsList');
+    const actualInputsList = document.getElementById('actualInputsList');
+    const biddingNotice = document.getElementById('biddingNotice');
+    const actualNotice = document.getElementById('actualNotice');
+    const btnConfirmBids = document.getElementById('btnConfirmBids');
+    const btnScoreRound = document.getElementById('btnScoreRound');
+    const btnBackToBids = document.getElementById('btnBackToBids');
+    const leaderboardBar = document.getElementById('leaderboardBar');
+    const headerPlayersFlex = document.getElementById('headerPlayersFlex');
+    const scoreTableBody = document.getElementById('scoreTableBody');
+    const btnUndoRound = document.getElementById('btnUndoRound');
+    const btnOpenScorecard = document.getElementById('btnOpenScorecard');
+    const scorecardModal = document.getElementById('scorecardModal');
+    const btnCloseScorecard = document.getElementById('btnCloseScorecard');
+    const gameFinishCard = document.getElementById('gameFinishCard');
+    const winnerAnnouncement = document.getElementById('winnerAnnouncement');
+    const finalScoresList = document.getElementById('finalScoresList');
+    const btnRestartFromFinish = document.getElementById('btnRestartFromFinish');
+    const rulesModal = document.getElementById('rulesModal');
+    const btnRulesModal = document.getElementById('btnRulesModal');
+    const btnCloseRules = document.getElementById('btnCloseRules');
+    const btnCloseRulesBtn = document.getElementById('btnCloseRulesBtn');
+    const resetConfirmModal = document.getElementById('resetConfirmModal');
+    const btnCancelReset = document.getElementById('btnCancelReset');
+    const btnConfirmReset = document.getElementById('btnConfirmReset');
+
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (btnInstallApp) {
+        btnInstallApp.classList.remove('hidden');
+      }
+    });
+
+    if (btnInstallApp) {
+      btnInstallApp.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          btnInstallApp.classList.add('hidden');
+        }
+        deferredPrompt = null;
+      });
+    }
+
+    window.addEventListener('appinstalled', () => {
+      if (btnInstallApp) btnInstallApp.classList.add('hidden');
+      deferredPrompt = null;
+    });
+
+    function getSavedNames() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY_NAMES);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {}
+      try {
+        localStorage.setItem(STORAGE_KEY_NAMES, JSON.stringify(DEFAULT_PRESET_NAMES));
+      } catch(e) {}
+      return [...DEFAULT_PRESET_NAMES];
+    }
+
+    function savePlayerName(name) {
+      if (!name || !name.trim()) return;
+      const clean = name.trim();
+      let names = getSavedNames();
+      if (!names.includes(clean)) {
+        names.unshift(clean);
+        if (names.length > 20) names = names.slice(0, 20);
+        try {
+          localStorage.setItem(STORAGE_KEY_NAMES, JSON.stringify(names));
+        } catch(e) {}
+      }
+    }
+
+    function removeSavedName(nameToRemove, e) {
+      if (e) e.stopPropagation();
+      let names = getSavedNames().filter(n => n !== nameToRemove);
+      if (names.length === 0) {
+        names = [...DEFAULT_PRESET_NAMES];
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY_NAMES, JSON.stringify(names));
+      } catch(e) {}
+      renderSavedNameChips();
+    }
+
+    function renderSavedNameChips() {
+      const names = getSavedNames();
+      savedNamesChipsContainer.innerHTML = '';
+      if (!names.length) return;
+
+      names.forEach(name => {
+        const chip = document.createElement('div');
+        chip.className = "pixel-tap inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700/80 active:bg-emerald-950 border border-slate-700 text-slate-200 text-xs font-bold px-3.5 py-2 rounded-2xl cursor-pointer shadow-sm";
+        chip.innerHTML = `
+          <span>${escapeHtml(name)}</span>
+          <button type="button" class="text-slate-400 hover:text-red-400 text-sm px-1 py-0.5 leading-none transition" title="Löschen">✕</button>
+        `;
+        chip.querySelector('span').addEventListener('click', () => applyNameToFirstEmptyInput(name));
+        chip.querySelector('button').addEventListener('click', (ev) => removeSavedName(name, ev));
+        savedNamesChipsContainer.appendChild(chip);
+      });
+    }
+
+    function applyNameToFirstEmptyInput(name) {
+      const allInputs = [];
+      for (let i = 0; i < state.playerCount; i++) {
+        const inp = document.getElementById(`player_name_${i}`);
+        if (inp) allInputs.push(inp);
+      }
+
+      for (let i = 0; i < allInputs.length; i++) {
+        const inp = allInputs[i];
+        if (!inp.value.trim() || inp.value.startsWith('Spieler ')) {
+          inp.value = name;
+          state.players[i] = name;
+          return;
+        }
+      }
+
+      if (allInputs[0]) {
+        allInputs[0].value = name;
+        state.players[0] = name;
+      }
+    }
+
+    function calculateMaxCards(count) {
+      return Math.floor(32 / count);
+    }
+
+    function buildPyramidSchedule(maxC) {
+      const schedule = [];
+      for (let c = 1; c <= maxC; c++) schedule.push(c);
+      for (let c = maxC - 1; c >= 1; c--) schedule.push(c);
+      return schedule;
+    }
+
+    function updateSetupInfo() {
+      const maxC = calculateMaxCards(state.playerCount);
+      const rounds = (maxC * 2) - 1;
+      setupSummaryText.textContent = `1 ➔ ${maxC} ➔ 1 Karten (${rounds} Runden)`;
+    }
+
+    function setPlayerCount(count) {
+      state.playerCount = count;
+      const buttons = playerCountButtons.querySelectorAll('.btn-player-cnt');
+      buttons.forEach(btn => {
+        const bCnt = parseInt(btn.getAttribute('data-cnt'), 10);
+        if (bCnt === count) {
+          btn.className = "btn-player-cnt pixel-tap h-14 rounded-2xl border-2 font-black text-base flex items-center justify-center transition bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-950";
+        } else {
+          btn.className = "btn-player-cnt pixel-tap h-14 rounded-2xl border-2 font-black text-base flex items-center justify-center transition bg-slate-800 border-slate-700 text-slate-300";
+        }
+      });
+
+      renderPlayerInputs();
+      updateSetupInfo();
+    }
+
+    playerCountButtons.querySelectorAll('.btn-player-cnt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cnt = parseInt(btn.getAttribute('data-cnt'), 10);
+        setPlayerCount(cnt);
+      });
+    });
+
+    function renderPlayerInputs() {
+      playerInputsContainer.innerHTML = '';
+      const saved = getSavedNames();
+
+      for (let i = 0; i < state.playerCount; i++) {
+        const fallback = saved[i] || `Spieler ${i + 1}`;
+        const currentVal = state.players[i] || fallback;
+        state.players[i] = currentVal;
+
+        const div = document.createElement('div');
+        div.className = "flex items-center gap-3";
+        div.innerHTML = `
+          <div class="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xs font-black text-emerald-400 shrink-0">
+            ${i + 1}
+          </div>
+          <input type="text" id="player_name_${i}" value="${escapeHtml(currentVal)}" maxlength="14" placeholder="Spieler ${i + 1}"
+            class="w-full h-12 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-2xl px-4 text-sm font-semibold text-white placeholder-slate-500 focus:outline-none transition shadow-inner">
+        `;
+        playerInputsContainer.appendChild(div);
+
+        const inp = div.querySelector('input');
+        inp.addEventListener('input', (e) => {
+          state.players[i] = e.target.value;
+        });
+      }
+    }
+
+    function saveActiveGame() {
+      if (!state.gameStarted) {
+        try {
+          localStorage.removeItem(STORAGE_KEY_STATE);
+        } catch (e) {}
+        return;
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function loadActiveGame() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY_STATE);
+        if (!saved) return false;
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.gameStarted && Array.isArray(parsed.roundsSchedule)) {
+          Object.assign(state, parsed);
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    btnStartGame.addEventListener('click', () => {
+      state.players = [];
+      for (let i = 0; i < state.playerCount; i++) {
+        const input = document.getElementById(`player_name_${i}`);
+        const name = (input && input.value.trim()) || `P${i + 1}`;
+        state.players.push(name);
+        savePlayerName(name);
+      }
+
+      state.maxCards = calculateMaxCards(state.playerCount);
+      state.roundsSchedule = buildPyramidSchedule(state.maxCards);
+      state.currentRoundIndex = 0;
+      state.history = [];
+      state.gameStarted = true;
+
+      saveActiveGame();
+      renderSavedNameChips();
+
+      setupView.classList.add('hidden');
+      gameView.classList.remove('hidden');
+      btnResetGame.classList.remove('hidden');
+      headerRoundBadge.classList.remove('hidden');
+      gameFinishCard.classList.add('hidden');
+      document.getElementById('roundControlBox').classList.remove('hidden');
+
+      prepareRound();
+      updateScoreboardUI();
+    });
+
+    function getDealerIndex(roundIdx) {
+      return roundIdx % state.playerCount;
+    }
+
+    function getStarterIndex(dealerIdx) {
+      return (dealerIdx + 1) % state.playerCount;
+    }
+
+    function getSpeakingOrder(starterIdx) {
+      const order = [];
+      for (let i = 0; i < state.playerCount; i++) {
+        order.push((starterIdx + i) % state.playerCount);
+      }
+      return order;
+    }
+
+    function prepareRound() {
+      const roundIdx = state.currentRoundIndex;
+      const numRounds = state.roundsSchedule.length;
+
+      if (roundIdx >= numRounds) {
+        finishGame();
+        return;
+      }
+
+      const cards = state.roundsSchedule[roundIdx];
+      const dealerIdx = getDealerIndex(roundIdx);
+      const starterIdx = getStarterIndex(dealerIdx);
+
+      state.phase = 'bidding';
+      state.bids = new Array(state.playerCount).fill(0);
+      state.actuals = new Array(state.playerCount).fill(0);
+
+      curRoundHeader.textContent = `${roundIdx + 1}/${numRounds}`;
+      roundNumberTitle.textContent = `Runde ${roundIdx + 1}`;
+      roundCardsBadge.textContent = `${cards} ${cards === 1 ? 'Karte' : 'Karten'}`;
+
+      const isForeheadRound = (roundIdx === 0) || (roundIdx === numRounds - 1);
+      if (isForeheadRound) {
+        roundStirnBadge.classList.remove('hidden');
+      } else {
+        roundStirnBadge.classList.add('hidden');
+      }
+
+      renderBiddingPhase(cards, starterIdx, dealerIdx);
+      showBiddingContainer();
+      saveActiveGame();
+    }
+
+    function showBiddingContainer() {
+      phaseBadge.textContent = "Ansage";
+      phaseBadge.className = "text-xs font-black uppercase tracking-wider px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300";
+      phaseBiddingContainer.classList.remove('hidden');
+      phaseResultsContainer.classList.add('hidden');
+    }
+
+    function showResultsContainer() {
+      phaseBadge.textContent = "Stiche";
+      phaseBadge.className = "text-xs font-black uppercase tracking-wider px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300";
+      phaseBiddingContainer.classList.add('hidden');
+      phaseResultsContainer.classList.remove('hidden');
+      renderActualPhase();
+      saveActiveGame();
+    }
+
+    function renderBiddingPhase(cards, starterIdx, dealerIdx) {
+      biddingInputsList.innerHTML = '';
+      const order = getSpeakingOrder(starterIdx);
+
+      order.forEach((pIdx) => {
+        const isDealer = (pIdx === dealerIdx);
+        const isStarter = (pIdx === starterIdx);
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-2xl border flex items-center justify-between gap-3 ${
+          isDealer ? 'bg-amber-950/25 border-amber-500/40' : 'bg-slate-950 border-slate-800'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex flex-col gap-1 truncate pr-1">
+            <span class="text-sm font-bold text-white truncate">${escapeHtml(state.players[pIdx])}</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${isStarter ? '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">Ansager</span>' : ''}
+              ${isDealer ? '<span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">Geber</span>' : ''}
+            </div>
+          </div>
+          <!-- 52px Touch Stepper -->
+          <div class="flex items-center gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
+            <button type="button" data-action="dec-bid" data-idx="${pIdx}" aria-label="Verringern" class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-lg font-black text-slate-200 border border-slate-700 flex items-center justify-center shadow-sm">－</button>
+            <span id="bidValueDisplay_${pIdx}" class="w-10 text-center font-black text-lg text-emerald-400">${state.bids[pIdx] || 0}</span>
+            <button type="button" data-action="inc-bid" data-idx="${pIdx}" aria-label="Erhöhen" class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-lg font-black text-slate-200 border border-slate-700 flex items-center justify-center shadow-sm">＋</button>
+          </div>
+        `;
+        biddingInputsList.appendChild(card);
+      });
+
+      biddingInputsList.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.getAttribute('data-idx'), 10);
+          const delta = btn.getAttribute('data-action') === 'inc-bid' ? 1 : -1;
+          adjustBid(idx, delta);
+        });
+      });
+
+      validateBids();
+    }
+
+    function adjustBid(playerIdx, delta) {
+      const cards = state.roundsSchedule[state.currentRoundIndex];
+      let current = state.bids[playerIdx] || 0;
+      let next = current + delta;
+      if (next < 0) next = 0;
+      if (next > cards) next = cards;
+      state.bids[playerIdx] = next;
+
+      const disp = document.getElementById(`bidValueDisplay_${playerIdx}`);
+      if (disp) disp.textContent = next;
+
+      validateBids();
+      saveActiveGame();
+    }
+
+    function validateBids() {
+      const cards = state.roundsSchedule[state.currentRoundIndex];
+      const dealerIdx = getDealerIndex(state.currentRoundIndex);
+
+      let sumOtherBids = 0;
+      for (let i = 0; i < state.playerCount; i++) {
+        if (i !== dealerIdx) sumOtherBids += (state.bids[i] || 0);
+      }
+
+      const forbiddenBid = cards - sumOtherBids;
+      let totalBids = 0;
+      state.bids.forEach(b => totalBids += (b || 0));
+
+      if (totalBids === cards) {
+        biddingNotice.className = "text-xs rounded-2xl p-3 bg-red-950/60 border border-red-500/50 text-red-300 font-bold block";
+        biddingNotice.innerHTML = `🚫 Summe ist ${cards}! Geber (${escapeHtml(state.players[dealerIdx])}) darf <strong>nicht ${forbiddenBid}</strong> ansagen.`;
+        btnConfirmBids.disabled = true;
+        btnConfirmBids.classList.add('opacity-40', 'cursor-not-allowed');
+      } else {
+        const forbiddenText = (forbiddenBid >= 0 && forbiddenBid <= cards)
+          ? `(Geber darf nicht: <strong class="text-amber-300">${forbiddenBid}</strong>)`
+          : '';
+        biddingNotice.className = "text-xs rounded-2xl p-3 bg-emerald-950/40 border border-emerald-600/40 text-emerald-300 font-semibold block";
+        biddingNotice.innerHTML = `✓ Ansagen: <strong>${totalBids}</strong> von ${cards} Stichen ${forbiddenText}`;
+        btnConfirmBids.disabled = false;
+        btnConfirmBids.classList.remove('opacity-40', 'cursor-not-allowed');
+      }
+    }
+
+    btnConfirmBids.addEventListener('click', () => {
+      const cards = state.roundsSchedule[state.currentRoundIndex];
+      let totalBids = 0;
+      state.bids.forEach(b => totalBids += (b || 0));
+      if (totalBids === cards) return;
+      showResultsContainer();
+    });
+
+    btnBackToBids.addEventListener('click', () => {
+      showBiddingContainer();
+    });
+
+    function renderActualPhase() {
+      actualInputsList.innerHTML = '';
+      state.players.forEach((name, idx) => {
+        const bid = state.bids[idx];
+        const card = document.createElement('div');
+        card.className = "p-3 rounded-2xl border bg-slate-950 border-slate-800 flex items-center justify-between gap-3";
+
+        card.innerHTML = `
+          <div class="flex flex-col gap-1 truncate pr-1">
+            <span class="text-sm font-bold text-white truncate">${escapeHtml(name)}</span>
+            <span class="text-xs text-slate-400 font-medium">Ansage: <strong class="text-emerald-400 text-sm font-black">${bid}</strong></span>
+          </div>
+          <!-- 52px Touch Stepper -->
+          <div class="flex items-center gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
+            <button type="button" data-action="dec-act" data-idx="${idx}" aria-label="Verringern" class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-lg font-black text-slate-200 border border-slate-700 flex items-center justify-center shadow-sm">－</button>
+            <span id="actualValueDisplay_${idx}" class="w-10 text-center font-black text-lg text-white">${state.actuals[idx] || 0}</span>
+            <button type="button" data-action="inc-act" data-idx="${idx}" aria-label="Erhöhen" class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-lg font-black text-slate-200 border border-slate-700 flex items-center justify-center shadow-sm">＋</button>
+          </div>
+        `;
+        actualInputsList.appendChild(card);
+      });
+
+      actualInputsList.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.getAttribute('data-idx'), 10);
+          const delta = btn.getAttribute('data-action') === 'inc-act' ? 1 : -1;
+          adjustActual(idx, delta);
+        });
+      });
+
+      validateActuals();
+    }
+
+    function adjustActual(playerIdx, delta) {
+      const cards = state.roundsSchedule[state.currentRoundIndex];
+      let current = state.actuals[playerIdx] || 0;
+      let next = current + delta;
+      if (next < 0) next = 0;
+      if (next > cards) next = cards;
+      state.actuals[playerIdx] = next;
+
+      const disp = document.getElementById(`actualValueDisplay_${playerIdx}`);
+      if (disp) disp.textContent = next;
+
+      validateActuals();
+      saveActiveGame();
+    }
+
+    function validateActuals() {
+      const cards = state.roundsSchedule[state.currentRoundIndex];
+      let totalActual = 0;
+      state.actuals.forEach(a => totalActual += (a || 0));
+
+      if (totalActual !== cards) {
+        const diff = cards - totalActual;
+        actualNotice.className = "text-xs rounded-2xl p-3 bg-amber-950/40 border border-amber-500/50 text-amber-300 font-bold block";
+        actualNotice.innerHTML = `⚠️ Noch <strong>${diff}</strong> ${diff === 1 ? 'Stich' : 'Stiche'} zu vergeben (${totalActual}/${cards}).`;
+        btnScoreRound.disabled = true;
+        btnScoreRound.classList.add('opacity-40', 'cursor-not-allowed');
+      } else {
+        actualNotice.className = "text-xs rounded-2xl p-3 bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-bold block";
+        actualNotice.innerHTML = `✓ Genau ${cards} Stiche verteilt.`;
+        btnScoreRound.disabled = false;
+        btnScoreRound.classList.remove('opacity-40', 'cursor-not-allowed');
+      }
+    }
+
+    btnScoreRound.addEventListener('click', () => {
+      const cards = state.roundsSchedule[state.currentRoundIndex];
+      let totalActual = 0;
+      state.actuals.forEach(a => totalActual += (a || 0));
+      if (totalActual !== cards) return;
+
+      const roundScores = [];
+      for (let i = 0; i < state.playerCount; i++) {
+        const bid = state.bids[i];
+        const actual = state.actuals[i];
+        let pts = actual;
+        if (bid === actual) pts += 10;
+        roundScores.push(pts);
+      }
+
+      const prevCumScores = state.history.length > 0
+        ? state.history[state.history.length - 1].cumScores
+        : new Array(state.playerCount).fill(0);
+
+      const cumScores = roundScores.map((pts, i) => prevCumScores[i] + pts);
+      const dealerIdx = getDealerIndex(state.currentRoundIndex);
+      const starterIdx = getStarterIndex(dealerIdx);
+
+      state.history.push({
+        roundIndex: state.currentRoundIndex,
+        roundNumber: state.currentRoundIndex + 1,
+        cards: cards,
+        dealerIdx: dealerIdx,
+        starterIdx: starterIdx,
+        bids: [...state.bids],
+        actuals: [...state.actuals],
+        roundScores: roundScores,
+        cumScores: cumScores
+      });
+
+      state.currentRoundIndex++;
+      updateScoreboardUI();
+
+      if (state.currentRoundIndex < state.roundsSchedule.length) {
+        prepareRound();
+      } else {
+        finishGame();
+      }
+      saveActiveGame();
+    });
+
+    function updateScoreboardUI() {
+      renderLeaderboard();
+      renderScoreTable();
+
+      if (state.history.length > 0) {
+        btnUndoRound.classList.remove('hidden');
+      } else {
+        btnUndoRound.classList.add('hidden');
+      }
+    }
+
+    function renderLeaderboard() {
+      leaderboardBar.innerHTML = '';
+      leaderboardBar.style.gridTemplateColumns = `repeat(${state.playerCount}, minmax(0, 1fr))`;
+
+      const currentTotals = state.history.length > 0
+        ? state.history[state.history.length - 1].cumScores
+        : new Array(state.playerCount).fill(0);
+
+      const ranking = state.players.map((name, i) => ({
+        index: i,
+        name: name,
+        score: currentTotals[i]
+      })).sort((a, b) => b.score - a.score);
+
+      const medals = ['🥇', '🥈', '🥉', '4.', '5.', '6.'];
+
+      ranking.forEach((entry, rankIdx) => {
+        const isLeader = rankIdx === 0 && entry.score > 0;
+        const box = document.createElement('div');
+        box.className = `p-2 rounded-2xl border flex flex-col items-center justify-center text-center transition ${
+          isLeader ? 'bg-emerald-500/10 border-emerald-500/50 shadow-sm' : 'bg-slate-950 border-slate-800'
+        }`;
+
+        box.innerHTML = `
+          <div class="text-[11px] text-slate-400 font-bold flex items-center gap-1 truncate max-w-full">
+            <span>${medals[rankIdx]}</span>
+            <span class="truncate">${escapeHtml(entry.name)}</span>
+          </div>
+          <div class="text-base font-black text-white leading-tight mt-1">
+            ${entry.score}
+          </div>
+        `;
+        leaderboardBar.appendChild(box);
+      });
+    }
+
+    function renderScoreTable() {
+      headerPlayersFlex.style.gridTemplateColumns = `repeat(${state.playerCount}, minmax(0, 1fr))`;
+      headerPlayersFlex.innerHTML = state.players.map(p => `
+        <div class="py-1 px-1 font-bold text-slate-300 truncate text-[11px]">${escapeHtml(p)}</div>
+      `).join('');
+
+      scoreTableBody.innerHTML = '';
+
+      if (state.history.length === 0) {
+        scoreTableBody.innerHTML = `
+          <tr>
+            <td colspan="${2 + state.playerCount}" class="text-center py-8 text-slate-500 text-xs italic font-sans">
+              Noch keine Runden abgeschlossen.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      state.history.forEach((round) => {
+        const tr = document.createElement('tr');
+        tr.className = "border-b border-slate-800/40";
+
+        let playersColsHtml = '';
+        for (let i = 0; i < state.playerCount; i++) {
+          const bid = round.bids[i];
+          const act = round.actuals[i];
+          const isCorrect = (bid === act);
+          const roundScore = round.roundScores[i];
+          const totalAfter = round.cumScores[i];
+          const isDealer = (i === round.dealerIdx);
+
+          playersColsHtml += `
+            <td class="p-1.5 text-center border-l border-slate-800/60">
+              <div class="flex items-center justify-center gap-1 text-[11px]">
+                <span class="${isCorrect ? 'text-emerald-400 font-black' : 'text-slate-400'}">${act}</span>
+                <span class="text-slate-600">/</span>
+                <span class="text-slate-400">${bid}</span>
+                ${isDealer ? '<span class="text-[8px] text-amber-400 font-sans">●</span>' : ''}
+              </div>
+              <div class="text-xs font-black ${isCorrect ? 'text-emerald-300' : 'text-slate-300'}">
+                ${totalAfter} <span class="text-[9px] font-normal text-slate-500">+${roundScore}</span>
+              </div>
+            </td>
+          `;
+        }
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-1 text-center font-bold text-slate-400 text-xs">${round.roundNumber}</td>
+          <td class="py-2.5 px-1 text-center font-bold text-emerald-400 text-xs">${round.cards}</td>
+          ${playersColsHtml}
+        `;
+        scoreTableBody.appendChild(tr);
+      });
+    }
+
+    btnUndoRound.addEventListener('click', () => {
+      if (state.history.length === 0) return;
+      const lastRound = state.history.pop();
+      state.currentRoundIndex = lastRound.roundIndex;
+      state.bids = [...lastRound.bids];
+      state.actuals = [...lastRound.actuals];
+
+      gameFinishCard.classList.add('hidden');
+      document.getElementById('roundControlBox').classList.remove('hidden');
+
+      prepareRound();
+      updateScoreboardUI();
+      scorecardModal.classList.add('hidden');
+      saveActiveGame();
+    });
+
+    function resetEntireGame() {
+      state.gameStarted = false;
+      state.history = [];
+      state.currentRoundIndex = 0;
+      state.bids = [];
+      state.actuals = [];
+
+      try {
+        localStorage.removeItem(STORAGE_KEY_STATE);
+      } catch (e) {}
+
+      setupView.classList.remove('hidden');
+      gameView.classList.add('hidden');
+      btnResetGame.classList.add('hidden');
+      headerRoundBadge.classList.add('hidden');
+      gameFinishCard.classList.add('hidden');
+      scorecardModal.classList.add('hidden');
+      resetConfirmModal.classList.add('hidden');
+      document.getElementById('roundControlBox').classList.remove('hidden');
+
+      setPlayerCount(state.playerCount);
+      renderSavedNameChips();
+    }
+
+    btnResetGame.addEventListener('click', () => {
+      resetConfirmModal.classList.remove('hidden');
+    });
+
+    btnCancelReset.addEventListener('click', () => {
+      resetConfirmModal.classList.add('hidden');
+    });
+
+    btnConfirmReset.addEventListener('click', () => {
+      resetEntireGame();
+    });
+
+    resetConfirmModal.addEventListener('click', (e) => {
+      if (e.target === resetConfirmModal) {
+        resetConfirmModal.classList.add('hidden');
+      }
+    });
+
+    btnRestartFromFinish.addEventListener('click', resetEntireGame);
+
+    function finishGame() {
+      document.getElementById('roundControlBox').classList.add('hidden');
+      gameFinishCard.classList.remove('hidden');
+
+      const finalTotals = state.history.length > 0
+        ? state.history[state.history.length - 1].cumScores
+        : new Array(state.playerCount).fill(0);
+
+      const ranking = state.players.map((name, i) => ({
+        name: name,
+        score: finalTotals[i]
+      })).sort((a, b) => b.score - a.score);
+
+      const winner = ranking[0];
+      winnerAnnouncement.textContent = `👑 ${winner.name} gewinnt mit ${winner.score} Punkten!`;
+
+      const medals = ['🥇', '🥈', '🥉', '4.', '5.', '6.'];
+      finalScoresList.innerHTML = ranking.map((entry, idx) => `
+        <div class="flex items-center justify-between p-3 rounded-2xl ${idx === 0 ? 'bg-emerald-500/10 border border-emerald-500/50' : 'bg-slate-950 border border-slate-800'}">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-base">${medals[idx] || (idx + 1) + '.'}</span>
+            <span class="font-bold text-white">${escapeHtml(entry.name)}</span>
+          </div>
+          <span class="font-black text-emerald-400 text-base">${entry.score} Pkt</span>
+        </div>
+      `).join('');
+    }
+
+    btnOpenScorecard.addEventListener('click', () => scorecardModal.classList.remove('hidden'));
+    btnCloseScorecard.addEventListener('click', () => scorecardModal.classList.add('hidden'));
+    scorecardModal.addEventListener('click', (e) => {
+      if (e.target === scorecardModal) scorecardModal.classList.add('hidden');
+    });
+
+    btnRulesModal.addEventListener('click', () => rulesModal.classList.remove('hidden'));
+    btnCloseRules.addEventListener('click', () => rulesModal.classList.add('hidden'));
+    btnCloseRulesBtn.addEventListener('click', () => rulesModal.classList.add('hidden'));
+    rulesModal.addEventListener('click', (e) => {
+      if (e.target === rulesModal) rulesModal.classList.add('hidden');
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const resumed = loadActiveGame();
+      if (resumed && state.gameStarted) {
+        setupView.classList.add('hidden');
+        gameView.classList.remove('hidden');
+        btnResetGame.classList.remove('hidden');
+        headerRoundBadge.classList.remove('hidden');
+        updateScoreboardUI();
+        if (state.currentRoundIndex >= state.roundsSchedule.length) {
+          finishGame();
+        } else {
+          prepareRound();
+        }
+      } else {
+        setPlayerCount(4);
+        renderSavedNameChips();
+      }
+    });
+  </script>
+</body>
+</html>
