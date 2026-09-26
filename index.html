@@ -76,7 +76,7 @@
   <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       const swCode = `
-        const CACHE = 'koppcard-cache-v7';
+        const CACHE = 'koppcard-cache-v8';
         self.addEventListener('install', e => self.skipWaiting());
         self.addEventListener('activate', e => e.waitUntil(clients.claim()));
         self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
@@ -110,7 +110,7 @@
           📖
         </button>
 
-        <button id="btn-open-stats-nav" class="pixel-tap w-11 h-11 rounded-xl bg-slate-800 text-slate-200 border border-slate-700/80 flex items-center justify-center text-xl" title="Statistik">
+        <button id="btn-open-stats-nav" class="pixel-tap w-11 h-11 rounded-xl bg-slate-800 text-slate-200 border border-slate-700/80 flex items-center justify-center text-xl" title="Ewige Statistik">
           📊
         </button>
 
@@ -164,13 +164,13 @@
     <!-- ================= 2. ACTIVE GAME SCREEN ================= -->
     <section id="screen-game" class="hidden flex-1 flex flex-col justify-between space-y-3">
       
-      <!-- Prominenter Runden- & Karten-Header -->
+      <!-- Prominenter Runden- & Status-Header -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md shrink-0 space-y-2.5">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 flex-wrap">
-            <!-- Große Kartenanzeige -->
-            <div id="badge-card-count" class="px-3.5 py-1.5 rounded-xl bg-indigo-600/30 border border-indigo-500/60 text-indigo-200 font-black text-base tracking-wide flex items-center gap-1.5 shadow-sm">
-              <span>🎴</span>
+            <!-- Dynamisches Phasen-Badge (Blau bei Ansage, Grün bei Abrechnen) -->
+            <div id="badge-card-count" class="px-3.5 py-1.5 rounded-xl font-black text-base tracking-wide flex items-center gap-1.5 shadow-sm transition-colors duration-200 bg-indigo-600/30 border border-indigo-500/60 text-indigo-200">
+              <span id="badge-card-count-icon">🎴</span>
               <span id="badge-card-count-text">1 KARTE AUSTEILEN</span>
             </div>
             <!-- Rundenindikator -->
@@ -183,8 +183,9 @@
             </span>
           </div>
 
+          <!-- Scorecard Button mit Clipboard-Icon -->
           <button id="btn-open-scorecard" class="pixel-tap px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 hover:bg-slate-700 shrink-0">
-            <span>📊</span> Scorecard
+            <span>📋</span> Scorecard
           </button>
         </div>
 
@@ -270,13 +271,13 @@
     </div>
   </div>
 
-  <!-- ================= MODAL: SCORECARD ================= -->
+  <!-- ================= MODAL: SCORECARD (Clipboard-Icon) ================= -->
   <div id="modal-scorecard" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex flex-col justify-end">
     <div class="bg-slate-900 border-t border-slate-800 rounded-t-3xl max-h-[85vh] flex flex-col p-4 w-full max-w-md mx-auto">
       <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-3"></div>
       <div class="flex justify-between items-center pb-2 border-b border-slate-800">
         <h3 class="text-xl font-bold text-white flex items-center gap-2">
-          <span>📊</span> Runden-Scorecard
+          <span>📋</span> Runden-Scorecard
         </h3>
         <button id="btn-close-scorecard" class="pixel-tap w-11 h-11 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-lg">✕</button>
       </div>
@@ -353,7 +354,7 @@
       players: [],
       rounds: [],
       currentRoundIndex: 0,
-      phase: 'bids',
+      phase: 'bids', // 'bids' oder 'tricks'
       activeBidStep: 0,
       currentBids: {},
       currentTricks: {},
@@ -739,9 +740,6 @@
       const isFirst = state.currentRoundIndex === 0;
       const isLast = state.currentRoundIndex === state.rounds.length - 1;
 
-      // Prominente Kartenanzeige im Header
-      const cardText = cards === 1 ? '1 KARTE AUSTEILEN' : `${cards} KARTEN AUSTEILEN`;
-      document.getElementById('badge-card-count-text').textContent = cardText;
       document.getElementById('badge-round-info').textContent = 
         `Runde ${state.currentRoundIndex + 1} / ${state.rounds.length}`;
       
@@ -810,9 +808,18 @@
       const actionBtn = document.getElementById('btn-main-action');
       const backBtn = document.getElementById('btn-bid-back');
       const listContainer = document.getElementById('stepper-list-container');
+      const cardBadge = document.getElementById('badge-card-count');
+      const cardIcon = document.getElementById('badge-card-count-icon');
+      const cardText = document.getElementById('badge-card-count-text');
+
       listContainer.innerHTML = '';
 
       if (state.phase === 'bids') {
+        // ================= PHASE 1: ANSAGEN (BLAU) =================
+        cardBadge.className = 'px-3.5 py-1.5 rounded-xl font-black text-base tracking-wide flex items-center gap-1.5 shadow-sm transition-colors duration-200 bg-indigo-600/30 border border-indigo-500/60 text-indigo-200';
+        cardIcon.textContent = '🎴';
+        cardText.textContent = cards === 1 ? '1 KARTE AUSTEILEN' : `${cards} KARTEN AUSTEILEN`;
+
         const activePlayer = order[state.activeBidStep];
         const isLastBidder = (state.activeBidStep === order.length - 1);
 
@@ -891,7 +898,11 @@
         });
 
       } else {
-        // ================= PHASE 2: ERGEBNIS / STICHE =================
+        // ================= PHASE 2: ERGEBNIS / ABRECHNEN (GRÜN) =================
+        cardBadge.className = 'px-3.5 py-1.5 rounded-xl font-black text-base tracking-wide flex items-center gap-1.5 shadow-sm transition-colors duration-200 bg-emerald-600/30 border border-emerald-500/60 text-emerald-200';
+        cardIcon.textContent = '✓';
+        cardText.textContent = 'STICHE ABRECHNEN';
+
         backBtn.classList.add('hidden');
         
         let currentTrickSum = 0;
