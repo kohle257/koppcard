@@ -76,7 +76,7 @@
   <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       const swCode = `
-        const CACHE = 'koppcard-cache-v6';
+        const CACHE = 'koppcard-cache-v7';
         self.addEventListener('install', e => self.skipWaiting());
         self.addEventListener('activate', e => e.waitUntil(clients.claim()));
         self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
@@ -92,11 +92,11 @@
   <header class="safe-top bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-2.5 z-30 shrink-0">
     <div class="max-w-md mx-auto flex items-center justify-between">
       <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-lg shadow-md shadow-indigo-600/30">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-xl shadow-md shadow-indigo-600/30">
           ♠
         </div>
         <div>
-          <h1 class="text-lg font-bold tracking-tight text-white leading-none">KoppCard</h1>
+          <h1 class="text-xl font-black tracking-tight text-white leading-none">KoppCard</h1>
           <p class="text-xs font-semibold text-slate-400 mt-0.5">Scorekeeper</p>
         </div>
       </div>
@@ -106,15 +106,15 @@
           📲 App
         </button>
 
-        <button id="btn-open-rules" class="pixel-tap w-10 h-10 rounded-xl bg-slate-800 text-slate-200 border border-slate-700/80 flex items-center justify-center text-lg" title="Regeln & Werte">
+        <button id="btn-open-rules" class="pixel-tap w-11 h-11 rounded-xl bg-slate-800 text-slate-200 border border-slate-700/80 flex items-center justify-center text-xl" title="Regeln & Werte">
           📖
         </button>
 
-        <button id="btn-open-stats-nav" class="pixel-tap w-10 h-10 rounded-xl bg-slate-800 text-slate-200 border border-slate-700/80 flex items-center justify-center text-lg" title="Statistik">
+        <button id="btn-open-stats-nav" class="pixel-tap w-11 h-11 rounded-xl bg-slate-800 text-slate-200 border border-slate-700/80 flex items-center justify-center text-xl" title="Statistik">
           📊
         </button>
 
-        <button id="btn-request-reset" class="pixel-tap px-3 h-10 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center justify-center">
+        <button id="btn-request-reset" class="pixel-tap px-3.5 h-11 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-sm font-bold flex items-center justify-center">
           Neu
         </button>
       </div>
@@ -127,26 +127,26 @@
     <!-- ================= 1. SETUP SCREEN ================= -->
     <section id="screen-setup" class="space-y-4 my-auto">
       <div class="flex items-center justify-between">
-        <h2 class="text-xl font-bold text-white">Neues Spiel</h2>
-        <button id="btn-open-stats-setup" class="pixel-tap text-xs font-bold text-indigo-400 bg-indigo-950/60 border border-indigo-800 px-3 py-1.5 rounded-xl">
+        <h2 class="text-2xl font-black text-white">Neues Spiel</h2>
+        <button id="btn-open-stats-setup" class="pixel-tap text-sm font-bold text-indigo-400 bg-indigo-950/60 border border-indigo-800 px-3.5 py-2 rounded-xl">
           📊 Statistik
         </button>
       </div>
 
       <!-- Spieleranzahl Toggle -->
-      <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl space-y-2">
+      <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-2">
         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Spieleranzahl</label>
         <div class="grid grid-cols-4 gap-2" id="player-count-selector">
-          <button data-count="3" class="count-btn pixel-tap h-12 rounded-xl border font-bold text-lg bg-slate-800 border-slate-700 text-slate-200">3</button>
-          <button data-count="4" class="count-btn pixel-tap h-12 rounded-xl border font-bold text-lg bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30">4</button>
-          <button data-count="5" class="count-btn pixel-tap h-12 rounded-xl border font-bold text-lg bg-slate-800 border-slate-700 text-slate-200">5</button>
-          <button data-count="6" class="count-btn pixel-tap h-12 rounded-xl border font-bold text-lg bg-slate-800 border-slate-700 text-slate-200">6</button>
+          <button data-count="3" class="count-btn pixel-tap h-13 py-2.5 rounded-xl border font-black text-xl bg-slate-800 border-slate-700 text-slate-200">3</button>
+          <button data-count="4" class="count-btn pixel-tap h-13 py-2.5 rounded-xl border font-black text-xl bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30">4</button>
+          <button data-count="5" class="count-btn pixel-tap h-13 py-2.5 rounded-xl border font-black text-xl bg-slate-800 border-slate-700 text-slate-200">5</button>
+          <button data-count="6" class="count-btn pixel-tap h-13 py-2.5 rounded-xl border font-black text-xl bg-slate-800 border-slate-700 text-slate-200">6</button>
         </div>
-        <p id="pyramid-info-text" class="text-xs text-slate-300 pt-1 text-center font-medium">Pyramide: 1 → 8 → 1 Karte (15 Runden)</p>
+        <p id="pyramid-info-text" class="text-sm text-slate-300 pt-1 text-center font-medium">Pyramide: 1 → 8 → 1 Karte (15 Runden)</p>
       </div>
 
       <!-- Namenschips -->
-      <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl space-y-2">
+      <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-2">
         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Spieler antippen</label>
         <div id="player-chips-container" class="flex flex-wrap gap-2"></div>
       </div>
@@ -155,56 +155,58 @@
       <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-2">
         <div class="flex justify-between items-center">
           <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Sitzreihenfolge am Tisch</label>
-          <span class="text-[11px] text-slate-400">Mit ▲/▼ anordnen</span>
+          <span class="text-xs text-slate-400">Mit ▲/▼ anordnen</span>
         </div>
         <div id="player-inputs-container" class="space-y-2"></div>
       </div>
     </section>
 
     <!-- ================= 2. ACTIVE GAME SCREEN ================= -->
-    <section id="screen-game" class="hidden flex-1 flex flex-col justify-between space-y-2.5">
+    <section id="screen-game" class="hidden flex-1 flex flex-col justify-between space-y-3">
       
-      <!-- Top Widget: Runde + Leaderboard -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-2.5 shadow-md shrink-0">
-        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span id="badge-round-info" class="text-sm font-extrabold px-3 py-1 rounded-lg bg-indigo-950 border border-indigo-800 text-indigo-300">
+      <!-- Prominenter Runden- & Karten-Header -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md shrink-0 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Große Kartenanzeige -->
+            <div id="badge-card-count" class="px-3.5 py-1.5 rounded-xl bg-indigo-600/30 border border-indigo-500/60 text-indigo-200 font-black text-base tracking-wide flex items-center gap-1.5 shadow-sm">
+              <span>🎴</span>
+              <span id="badge-card-count-text">1 KARTE AUSTEILEN</span>
+            </div>
+            <!-- Rundenindikator -->
+            <span id="badge-round-info" class="text-xs font-extrabold px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
               Runde 1 / 15
             </span>
-            <span id="badge-stirn" class="hidden text-sm font-extrabold px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 animate-pulse">
+            <!-- Stirn Sonderregel Badge -->
+            <span id="badge-stirn" class="hidden text-xs font-extrabold px-2.5 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 animate-pulse">
               🎯 Stirn
             </span>
           </div>
 
-          <button id="btn-open-scorecard" class="pixel-tap px-3 py-1 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 hover:bg-slate-700">
+          <button id="btn-open-scorecard" class="pixel-tap px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 hover:bg-slate-700 shrink-0">
             <span>📊</span> Scorecard
           </button>
         </div>
 
-        <div id="leaderboard-container" class="grid grid-flow-col auto-cols-fr gap-2 pt-2 text-center"></div>
+        <!-- Leaderboard -->
+        <div id="leaderboard-container" class="grid grid-flow-col auto-cols-fr gap-2 pt-1 border-t border-slate-800/80 text-center"></div>
       </div>
 
-      <!-- Phasen-Hinweis -->
-      <div id="phase-banner" class="bg-indigo-950/40 border border-indigo-900/60 rounded-xl px-3 py-2 text-center shrink-0 transition-colors">
-        <h3 id="phase-title" class="text-sm font-bold uppercase tracking-wider text-indigo-300">Ansage reihum</h3>
-        <p id="phase-subtitle" class="text-xs text-slate-400 mt-0.5">Ansager beginnt</p>
-      </div>
-
-      <!-- Stepper-Liste -->
-      <div id="stepper-list-container" class="space-y-2 flex-1 justify-center flex flex-col"></div>
+      <!-- Stepper-Liste der Spieler -->
+      <div id="stepper-list-container" class="space-y-2.5 flex-1 justify-center flex flex-col"></div>
     </section>
 
     <!-- ================= 3. GAME OVER SCREEN ================= -->
     <section id="screen-gameover" class="hidden text-center space-y-4 my-auto">
-      <div class="w-16 h-16 mx-auto bg-amber-500/20 border border-amber-500/40 rounded-full flex items-center justify-center text-3xl">
+      <div class="w-20 h-20 mx-auto bg-amber-500/20 border border-amber-500/40 rounded-full flex items-center justify-center text-4xl shadow-lg shadow-amber-500/10">
         🏆
       </div>
       <div>
-        <h2 class="text-2xl font-black text-white">Spiel beendet!</h2>
-        <p id="gameover-winner-text" class="text-lg text-amber-300 font-bold mt-1">Christian gewinnt mit 72 Punkten</p>
+        <h2 class="text-3xl font-black text-white">Spiel beendet!</h2>
+        <p id="gameover-winner-text" class="text-xl text-amber-300 font-extrabold mt-1">Christian gewinnt mit 72 Punkten</p>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-2 text-left" id="gameover-ranking-list"></div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2 text-left" id="gameover-ranking-list"></div>
 
       <div class="flex gap-2 pt-2">
         <button id="btn-open-stats-gameover" class="pixel-tap flex-1 h-14 bg-slate-800 border border-slate-700 text-white font-bold rounded-2xl text-base">
@@ -219,23 +221,23 @@
   <footer class="safe-bottom bg-slate-950/95 backdrop-blur-md border-t border-slate-800/80 px-4 pt-2.5 pb-3 shrink-0">
     <div class="max-w-md mx-auto">
       <!-- Setup Button -->
-      <button id="btn-start-game" class="pixel-tap w-full h-14 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center gap-2">
+      <button id="btn-start-game" class="pixel-tap w-full h-14 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold text-xl rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center gap-2">
         <span>KoppCard Starten</span>
-        <span class="text-xl">➔</span>
+        <span class="text-2xl">➔</span>
       </button>
 
       <!-- Active Game Buttons -->
       <div id="game-action-buttons-wrap" class="hidden flex gap-2">
-        <button id="btn-bid-back" class="hidden pixel-tap w-16 h-14 bg-slate-800 text-slate-200 border border-slate-700 text-sm font-bold rounded-2xl flex items-center justify-center">
+        <button id="btn-bid-back" class="hidden pixel-tap w-16 h-14 bg-slate-800 text-slate-200 border border-slate-700 text-base font-bold rounded-2xl flex items-center justify-center">
           ↩
         </button>
-        <button id="btn-main-action" class="pixel-tap flex-1 h-14 bg-indigo-600 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none">
+        <button id="btn-main-action" class="pixel-tap flex-1 h-14 bg-indigo-600 text-white font-black text-xl rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none">
           Ansage bestätigen & Weiter
         </button>
       </div>
 
       <!-- Gameover Button -->
-      <button id="btn-restart-from-gameover" class="hidden pixel-tap w-full h-14 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30">
+      <button id="btn-restart-from-gameover" class="hidden pixel-tap w-full h-14 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold text-xl rounded-2xl shadow-lg shadow-indigo-600/30">
         Neues Spiel starten
       </button>
     </div>
@@ -247,21 +249,21 @@
       <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-3"></div>
       <div class="flex justify-between items-center pb-3 border-b border-slate-800">
         <div>
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <h3 class="text-xl font-bold text-white flex items-center gap-2">
             <span>📊</span> Ewige Statistik
           </h3>
           <p class="text-xs text-slate-400">Wird automatisch nach Spielende erfasst</p>
         </div>
-        <button id="btn-close-stats" class="pixel-tap w-10 h-10 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-base">✕</button>
+        <button id="btn-close-stats" class="pixel-tap w-11 h-11 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-lg">✕</button>
       </div>
 
       <div id="stats-content-list" class="overflow-y-auto py-3 space-y-3.5 flex-1 pr-1"></div>
 
       <div class="pt-2 border-t border-slate-800 flex justify-between items-center safe-bottom">
-        <button id="btn-reset-stats" class="pixel-tap text-xs text-rose-400 font-semibold px-3 py-2.5 rounded-xl bg-rose-950/40 border border-rose-900/60">
+        <button id="btn-reset-stats" class="pixel-tap text-xs text-rose-400 font-semibold px-3.5 py-2.5 rounded-xl bg-rose-950/40 border border-rose-900/60">
           Statistik löschen
         </button>
-        <button id="btn-close-stats-bottom" class="pixel-tap px-6 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl">
+        <button id="btn-close-stats-bottom" class="pixel-tap px-6 py-2.5 bg-indigo-600 text-white text-base font-bold rounded-xl">
           Fertig
         </button>
       </div>
@@ -273,18 +275,18 @@
     <div class="bg-slate-900 border-t border-slate-800 rounded-t-3xl max-h-[85vh] flex flex-col p-4 w-full max-w-md mx-auto">
       <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-3"></div>
       <div class="flex justify-between items-center pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+        <h3 class="text-xl font-bold text-white flex items-center gap-2">
           <span>📊</span> Runden-Scorecard
         </h3>
-        <button id="btn-close-scorecard" class="pixel-tap w-10 h-10 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-base">✕</button>
+        <button id="btn-close-scorecard" class="pixel-tap w-11 h-11 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-lg">✕</button>
       </div>
 
       <div class="overflow-y-auto py-2 flex-1">
-        <table class="w-full text-sm text-left border-collapse" id="scorecard-table"></table>
+        <table class="w-full text-base text-left border-collapse" id="scorecard-table"></table>
       </div>
 
       <div class="pt-3 border-t border-slate-800 safe-bottom">
-        <button id="btn-undo-round" class="pixel-tap w-full py-3.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-xl text-sm font-bold">
+        <button id="btn-undo-round" class="pixel-tap w-full py-3.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-xl text-base font-bold">
           ↩ Letzte Runde löschen
         </button>
       </div>
@@ -296,24 +298,24 @@
     <div class="bg-slate-900 border-t border-slate-800 rounded-t-3xl max-h-[85vh] flex flex-col p-4 w-full max-w-md mx-auto">
       <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-3"></div>
       <div class="flex justify-between items-center pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white">KoppCard Regeln</h3>
-        <button id="btn-close-rules" class="pixel-tap w-10 h-10 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-base">✕</button>
+        <h3 class="text-xl font-bold text-white">KoppCard Regeln</h3>
+        <button id="btn-close-rules" class="pixel-tap w-11 h-11 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-lg">✕</button>
       </div>
-      <div class="overflow-y-auto py-3 space-y-3 text-sm text-slate-300 flex-1 leading-relaxed safe-bottom">
-        <div class="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+      <div class="overflow-y-auto py-3 space-y-3.5 text-base text-slate-300 flex-1 leading-relaxed safe-bottom">
+        <div class="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
           <p class="font-bold text-white mb-1">Kartenwertigkeit (Skatblatt):</p>
-          <p class="font-mono text-base text-indigo-300">♦ Karo &lt; ♥ Herz &lt; ♠ Pik &lt; ♣ Kreuz</p>
+          <p class="font-mono text-lg text-indigo-300 font-bold">♦ Karo &lt; ♥ Herz &lt; ♠ Pik &lt; ♣ Kreuz</p>
           <p class="mt-1 text-xs text-slate-400">Kleinste Karte: Karo 7. Höchste Karte: Kreuz Ass.</p>
         </div>
-        <div class="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+        <div class="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
           <p class="font-bold text-white mb-1">🎯 Stirn-Sonderregel:</p>
           <p>In der 1. und in der letzten Runde hält sich jeder Spieler seine 1 Karte ungesehen vor die Stirn. Man sieht nur die Karten der Gegner!</p>
         </div>
-        <div class="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+        <div class="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
           <p class="font-bold text-white mb-1">🚫 Verbotene Summe:</p>
           <p>Der Geber tippt als Letzter. Seine Ansage darf niemals so gewählt werden, dass die Summe aller Ansagen genau der Rundenzahl entspricht.</p>
         </div>
-        <div class="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+        <div class="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
           <p class="font-bold text-white mb-1">🏆 Wertung:</p>
           <p>Treffer: 10 Punkte Bonus + 1 Punkt pro Stich.<br>Falsch: 1 Punkt pro gewonnenem Stich.</p>
         </div>
@@ -328,12 +330,12 @@
         ⚠️
       </div>
       <div>
-        <h4 class="text-base font-bold text-white">Spiel abbrechen?</h4>
+        <h4 class="text-lg font-bold text-white">Spiel abbrechen?</h4>
         <p class="text-xs text-slate-400 mt-1">Das laufende Spiel wird zurückgesetzt.</p>
       </div>
       <div class="grid grid-cols-2 gap-2 pt-1">
-        <button id="btn-cancel-reset" class="pixel-tap py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm border border-slate-700">Abbrechen</button>
-        <button id="btn-confirm-reset" class="pixel-tap py-3 rounded-xl bg-rose-600 text-white font-bold text-sm shadow-md shadow-rose-600/30">Ja, Neu</button>
+        <button id="btn-cancel-reset" class="pixel-tap py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-base border border-slate-700">Abbrechen</button>
+        <button id="btn-confirm-reset" class="pixel-tap py-3 rounded-xl bg-rose-600 text-white font-bold text-base shadow-md shadow-rose-600/30">Ja, Neu</button>
       </div>
     </div>
   </div>
@@ -503,11 +505,11 @@
           <div class="bg-slate-800/70 border border-slate-700 p-3.5 rounded-2xl">
             <div class="flex justify-between items-start">
               <div>
-                <span class="font-extrabold text-white text-base">${name}</span>
+                <span class="font-black text-white text-lg">${name}</span>
                 <span class="text-xs text-slate-400 ml-2 font-medium">${ps.gamesPlayed} Spiele</span>
               </div>
               <div class="text-right">
-                <span class="text-sm font-black text-amber-300">🏆 ${ps.gamesWon} Siege</span>
+                <span class="text-base font-black text-amber-300">🏆 ${ps.gamesWon} Siege</span>
                 <span class="text-xs text-slate-400 block font-medium">Quote: ${winRate}%</span>
               </div>
             </div>
@@ -585,10 +587,10 @@
       chips.forEach(chip => {
         const name = chip.getAttribute('data-name');
         if (activeNames.includes(name)) {
-          chip.className = 'player-chip-btn pixel-tap px-3.5 py-2 rounded-xl text-sm font-bold border transition-colors bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30 flex items-center gap-1.5';
+          chip.className = 'player-chip-btn pixel-tap px-3.5 py-2.5 rounded-xl text-base font-bold border transition-colors bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30 flex items-center gap-1.5';
           chip.innerHTML = `<span>✓</span> <span>${name}</span>`;
         } else {
-          chip.className = 'player-chip-btn pixel-tap px-3.5 py-2 rounded-xl text-sm font-bold border transition-colors bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600 flex items-center gap-1.5';
+          chip.className = 'player-chip-btn pixel-tap px-3.5 py-2.5 rounded-xl text-base font-bold border transition-colors bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600 flex items-center gap-1.5';
           chip.innerHTML = `<span>${name}</span>`;
         }
       });
@@ -601,7 +603,7 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.setAttribute('data-name', name);
-        btn.className = 'player-chip-btn pixel-tap px-3.5 py-2 rounded-xl text-sm font-bold border transition-colors bg-slate-800 text-slate-300 border-slate-700 flex items-center gap-1.5';
+        btn.className = 'player-chip-btn pixel-tap px-3.5 py-2.5 rounded-xl text-base font-bold border transition-colors bg-slate-800 text-slate-300 border-slate-700 flex items-center gap-1.5';
         btn.innerHTML = `<span>${name}</span>`;
 
         btn.onclick = () => {
@@ -656,15 +658,15 @@
         row.innerHTML = `
           <div class="flex flex-col gap-0.5">
             <button type="button" onclick="movePlayer(${i}, -1)" ${i === 0 ? 'disabled' : ''}
-              class="w-7 h-5 bg-slate-800 disabled:opacity-30 rounded border border-slate-700 text-[10px] text-slate-300 font-bold flex items-center justify-center">▲</button>
+              class="w-8 h-6 bg-slate-800 disabled:opacity-30 rounded border border-slate-700 text-xs text-slate-300 font-bold flex items-center justify-center">▲</button>
             <button type="button" onclick="movePlayer(${i}, 1)" ${i === state.playerCount - 1 ? 'disabled' : ''}
-              class="w-7 h-5 bg-slate-800 disabled:opacity-30 rounded border border-slate-700 text-[10px] text-slate-300 font-bold flex items-center justify-center">▼</button>
+              class="w-8 h-6 bg-slate-800 disabled:opacity-30 rounded border border-slate-700 text-xs text-slate-300 font-bold flex items-center justify-center">▼</button>
           </div>
-          <span class="w-8 h-11 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-extrabold text-slate-300">
+          <span class="w-9 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-base font-extrabold text-slate-300">
             ${i + 1}
           </span>
           <input type="text" value="${defaultName}" placeholder="Spieler ${i + 1}"
-            class="player-name-input flex-1 h-11 bg-slate-800/90 text-white font-bold text-base px-3.5 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 transition-colors">
+            class="player-name-input flex-1 h-12 bg-slate-800/90 text-white font-bold text-lg px-4 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 transition-colors">
         `;
         container.appendChild(row);
       }
@@ -691,9 +693,9 @@
           const count = parseInt(btn.dataset.count);
           state.playerCount = count;
           buttons.forEach(b => {
-            b.className = 'count-btn pixel-tap h-12 rounded-xl border font-bold text-lg bg-slate-800 border-slate-700 text-slate-200';
+            b.className = 'count-btn pixel-tap h-13 py-2.5 rounded-xl border font-black text-xl bg-slate-800 border-slate-700 text-slate-200';
           });
-          btn.className = 'count-btn pixel-tap h-12 rounded-xl border font-bold text-lg bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30';
+          btn.className = 'count-btn pixel-tap h-13 py-2.5 rounded-xl border font-black text-xl bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30';
           renderSetupPlayerInputs();
         };
       });
@@ -737,8 +739,11 @@
       const isFirst = state.currentRoundIndex === 0;
       const isLast = state.currentRoundIndex === state.rounds.length - 1;
 
+      // Prominente Kartenanzeige im Header
+      const cardText = cards === 1 ? '1 KARTE AUSTEILEN' : `${cards} KARTEN AUSTEILEN`;
+      document.getElementById('badge-card-count-text').textContent = cardText;
       document.getElementById('badge-round-info').textContent = 
-        `Runde ${state.currentRoundIndex + 1} / ${state.rounds.length} (${cards} ${cards === 1 ? 'Karte' : 'Karten'})`;
+        `Runde ${state.currentRoundIndex + 1} / ${state.rounds.length}`;
       
       const stirnBadge = document.getElementById('badge-stirn');
       if (isFirst || isLast) {
@@ -775,8 +780,8 @@
         const isLeader = score === topScore && state.history.length > 0;
         return `
           <div class="bg-slate-800/80 border ${isLeader ? 'border-amber-500/60 bg-amber-950/20' : 'border-slate-700/60'} py-1.5 px-2 rounded-xl flex flex-col items-center">
-            <span class="text-xs font-bold text-slate-300 truncate max-w-[80px]">${p}</span>
-            <span class="text-lg font-black ${isLeader ? 'text-amber-400' : 'text-white'} leading-tight">${score}</span>
+            <span class="text-xs font-bold text-slate-300 truncate max-w-[85px]">${p}</span>
+            <span class="text-xl font-black ${isLeader ? 'text-amber-400' : 'text-white'} leading-tight">${score}</span>
           </div>
         `;
       }).join('');
@@ -802,8 +807,6 @@
       const cards = state.rounds[state.currentRoundIndex];
       const { dealerName, firstBidderName, order } = getTurnOrder();
 
-      const phaseTitle = document.getElementById('phase-title');
-      const phaseSubtitle = document.getElementById('phase-subtitle');
       const actionBtn = document.getElementById('btn-main-action');
       const backBtn = document.getElementById('btn-bid-back');
       const listContainer = document.getElementById('stepper-list-container');
@@ -812,10 +815,6 @@
       if (state.phase === 'bids') {
         const activePlayer = order[state.activeBidStep];
         const isLastBidder = (state.activeBidStep === order.length - 1);
-
-        phaseTitle.textContent = `Ansage: ${activePlayer} ist dran`;
-        phaseTitle.className = 'text-sm font-bold uppercase tracking-wider text-indigo-300';
-        phaseSubtitle.textContent = `Schritt ${state.activeBidStep + 1} von ${order.length} (Karten: ${cards})`;
 
         if (state.activeBidStep > 0) {
           backBtn.classList.remove('hidden');
@@ -829,7 +828,7 @@
           actionBtn.textContent = 'Ansage bestätigen & Weiter';
         }
         actionBtn.disabled = false;
-        actionBtn.className = 'pixel-tap flex-1 h-14 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center';
+        actionBtn.className = 'pixel-tap flex-1 h-14 bg-indigo-600 active:bg-indigo-700 text-white font-black text-xl rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center';
 
         let forbiddenDealerBid = null;
         if (isLastBidder) {
@@ -847,27 +846,27 @@
           const currentVal = state.currentBids[p] || 0;
 
           let badgeHtml = '';
-          if (isAnsager) badgeHtml += `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">Ansager</span>`;
-          if (isGeber) badgeHtml += `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">Geber</span>`;
-          if (isCurrentTurn) badgeHtml += `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">Am Zug</span>`;
+          if (isAnsager) badgeHtml += `<span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">Ansager</span>`;
+          if (isGeber) badgeHtml += `<span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">Geber</span>`;
+          if (isCurrentTurn) badgeHtml += `<span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">Am Zug</span>`;
 
           let forbiddenWarning = '';
           if (isCurrentTurn && isGeber && forbiddenDealerBid !== null && forbiddenDealerBid >= 0 && forbiddenDealerBid <= cards) {
-            forbiddenWarning = `<span class="text-xs font-bold text-rose-400 block mt-0.5">⚠️ Darf nicht ${forbiddenDealerBid} ansagen!</span>`;
+            forbiddenWarning = `<span class="text-sm font-extrabold text-rose-400 block mt-1">⚠️ Darf nicht ${forbiddenDealerBid} ansagen!</span>`;
           }
 
           const card = document.createElement('div');
           const containerStyle = isCurrentTurn 
-            ? 'bg-slate-900 border-2 border-indigo-500 shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-500/50' 
+            ? 'bg-slate-900 border-2 border-indigo-500 shadow-xl shadow-indigo-500/20 ring-2 ring-indigo-500/40 py-3.5' 
             : hasAlreadyBid 
-              ? 'bg-slate-900/90 border border-slate-700/80 opacity-90'
-              : 'bg-slate-900/50 border border-slate-800/80 opacity-40';
+              ? 'bg-slate-900/90 border border-slate-700/80 opacity-90 py-3'
+              : 'bg-slate-900/50 border border-slate-800/80 opacity-40 py-3';
 
           card.className = `p-3 rounded-2xl ${containerStyle} flex items-center justify-between transition-all`;
           card.innerHTML = `
             <div>
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-extrabold text-white text-base">${p}</span>
+                <span class="font-black text-white text-lg">${p}</span>
                 ${badgeHtml}
               </div>
               ${forbiddenWarning}
@@ -875,15 +874,15 @@
 
             <div class="flex items-center gap-2.5">
               ${isCurrentTurn ? `
-                <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none"
+                <button class="pixel-tap w-13 h-13 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none"
                   onclick="changeBid('${p}', -1)" ${currentVal <= 0 ? 'disabled' : ''}>−</button>
-                <span class="w-8 text-center font-black text-xl text-white font-mono">${currentVal}</span>
-                <button class="pixel-tap w-12 h-12 rounded-xl bg-indigo-600/40 border border-indigo-500/50 text-indigo-200 font-black text-2xl flex items-center justify-center active:bg-indigo-600/60 disabled:opacity-30 disabled:pointer-events-none"
+                <span class="w-9 text-center font-black text-2xl text-white font-mono">${currentVal}</span>
+                <button class="pixel-tap w-13 h-13 px-4 py-2.5 rounded-xl bg-indigo-600/40 border border-indigo-500/50 text-indigo-200 font-black text-2xl flex items-center justify-center active:bg-indigo-600/60 disabled:opacity-30 disabled:pointer-events-none"
                   onclick="changeBid('${p}', 1)" ${currentVal >= cards ? 'disabled' : ''}>+</button>
               ` : `
-                <div class="h-12 flex items-center px-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                <div class="h-12 flex items-center px-3.5 rounded-xl bg-slate-950/60 border border-slate-800">
                   <span class="text-xs font-bold text-slate-400 mr-2">${hasAlreadyBid ? 'Tipp:' : 'Wartet'}</span>
-                  <span class="font-mono font-black text-lg ${hasAlreadyBid ? 'text-white' : 'text-slate-500'}">${hasAlreadyBid ? currentVal : '−'}</span>
+                  <span class="font-mono font-black text-xl ${hasAlreadyBid ? 'text-white' : 'text-slate-500'}">${hasAlreadyBid ? currentVal : '−'}</span>
                 </div>
               `}
             </div>
@@ -895,35 +894,24 @@
         // ================= PHASE 2: ERGEBNIS / STICHE =================
         backBtn.classList.add('hidden');
         
-        // Summe aller aktuell vergebenen Stiche
         let currentTrickSum = 0;
         state.players.forEach(p => currentTrickSum += (state.currentTricks[p] || 0));
         const remainingTricks = cards - currentTrickSum;
         const isSumComplete = (currentTrickSum === cards);
 
-        phaseTitle.textContent = `Phase 2: Gemachte Stiche (${cards} im Spiel)`;
-        phaseTitle.className = 'text-sm font-bold uppercase tracking-wider text-emerald-400';
-        
-        if (isSumComplete) {
-          phaseSubtitle.innerHTML = `<span class="text-emerald-400 font-bold">✓ Alle ${cards} Stiche verteilt – Abrechnung bereit</span>`;
-        } else {
-          phaseSubtitle.innerHTML = `<span class="text-amber-300 font-semibold">Noch ${remainingTricks} von ${cards} ${cards === 1 ? 'Stich' : 'Stichen'} offen</span>`;
-        }
-
-        actionBtn.textContent = 'Runde abrechnen';
+        actionBtn.textContent = isSumComplete ? 'Runde abrechnen' : `Noch ${remainingTricks} ${remainingTricks === 1 ? 'Stich' : 'Stiche'} offen`;
         actionBtn.disabled = !isSumComplete;
 
         if (isSumComplete) {
-          actionBtn.className = 'pixel-tap flex-1 h-14 bg-emerald-600 active:bg-emerald-700 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-emerald-600/30 border border-emerald-500/50 flex items-center justify-center cursor-pointer';
+          actionBtn.className = 'pixel-tap flex-1 h-14 bg-emerald-600 active:bg-emerald-700 text-white font-black text-xl rounded-2xl shadow-lg shadow-emerald-600/30 border border-emerald-500/50 flex items-center justify-center cursor-pointer';
         } else {
-          actionBtn.className = 'pixel-tap flex-1 h-14 bg-slate-800 text-slate-400 font-extrabold text-lg rounded-2xl border border-slate-700/60 flex items-center justify-center opacity-40 pointer-events-none';
+          actionBtn.className = 'pixel-tap flex-1 h-14 bg-slate-800 text-slate-400 font-bold text-lg rounded-2xl border border-slate-700/60 flex items-center justify-center opacity-40 pointer-events-none';
         }
 
         state.players.forEach((p) => {
           const bid = state.currentBids[p];
           const trick = state.currentTricks[p] || 0;
           const isHitting = (trick === bid);
-          // + Button deaktivieren wenn keine Stiche mehr in der Runde übrig sind
           const canIncrease = remainingTricks > 0;
 
           const card = document.createElement('div');
@@ -931,7 +919,7 @@
           card.innerHTML = `
             <div>
               <div class="flex items-center gap-2">
-                <span class="font-extrabold text-white text-base">${p}</span>
+                <span class="font-black text-white text-lg">${p}</span>
                 <span class="text-xs px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 font-mono font-bold">Ansage: ${bid}</span>
               </div>
               <span class="text-xs ${isHitting ? 'text-emerald-400 font-bold' : 'text-slate-400'} block mt-1">
@@ -940,10 +928,10 @@
             </div>
 
             <div class="flex items-center gap-2.5">
-              <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none"
+              <button class="pixel-tap w-13 h-13 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none"
                 onclick="changeTrick('${p}', -1)" ${trick <= 0 ? 'disabled' : ''}>−</button>
-              <span class="w-8 text-center font-black text-xl text-white font-mono">${trick}</span>
-              <button class="pixel-tap w-12 h-12 rounded-xl bg-emerald-600/30 border border-emerald-500/40 text-emerald-200 font-black text-2xl flex items-center justify-center active:bg-emerald-600/50 disabled:opacity-20 disabled:pointer-events-none"
+              <span class="w-9 text-center font-black text-2xl text-white font-mono">${trick}</span>
+              <button class="pixel-tap w-13 h-13 px-4 py-2.5 rounded-xl bg-emerald-600/30 border border-emerald-500/40 text-emerald-200 font-black text-2xl flex items-center justify-center active:bg-emerald-600/50 disabled:opacity-20 disabled:pointer-events-none"
                 onclick="changeTrick('${p}', 1)" ${!canIncrease ? 'disabled' : ''}>+</button>
             </div>
           `;
@@ -968,13 +956,11 @@
       const current = state.currentTricks[player] || 0;
       const next = current + delta;
       
-      // Summe aller anderen Spieler
       let sumOthers = 0;
       state.players.forEach(p => {
         if (p !== player) sumOthers += (state.currentTricks[p] || 0);
       });
 
-      // Strikte Obergrenze: Eigene Stiche + Stiche der anderen dürfen NIEMALS die Rundenzahl übersteigen
       if (next >= 0 && (sumOthers + next) <= cards) {
         state.currentTricks[player] = next;
         saveGameState();
@@ -1017,12 +1003,11 @@
         }
 
       } else {
-        // Phase 2: Stiche abrechnen
         let totalTricks = 0;
         state.players.forEach(p => totalTricks += (state.currentTricks[p] || 0));
 
         if (totalTricks !== cards) {
-          return; // Button ist ohnehin disabled, aber als Guardrail
+          return;
         }
 
         const roundScores = {};
@@ -1079,12 +1064,12 @@
 
       const list = document.getElementById('gameover-ranking-list');
       list.innerHTML = sorted.map((p, idx) => `
-        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/80 border border-slate-700">
+        <div class="flex items-center justify-between p-3.5 rounded-xl bg-slate-800/80 border border-slate-700">
           <div class="flex items-center gap-2.5">
-            <span class="w-7 text-center font-extrabold ${idx === 0 ? 'text-amber-400 text-lg' : 'text-slate-400 text-sm'}">#${idx + 1}</span>
-            <span class="font-bold text-base text-white">${p}</span>
+            <span class="w-8 text-center font-extrabold ${idx === 0 ? 'text-amber-400 text-xl' : 'text-slate-400 text-base'}">#${idx + 1}</span>
+            <span class="font-black text-lg text-white">${p}</span>
           </div>
-          <span class="font-black text-base text-slate-100 font-mono">${totals[p]} Pkt</span>
+          <span class="font-black text-lg text-slate-100 font-mono">${totals[p]} Pkt</span>
         </div>
       `).join('');
     }
@@ -1098,7 +1083,7 @@
           <tr class="border-b border-slate-700 text-slate-300">
             <th class="py-2.5 px-1.5 text-center font-extrabold">Rd</th>
             <th class="py-2.5 px-1.5 text-center font-extrabold">K</th>
-            ${state.players.map(p => `<th class="py-2.5 px-1.5 text-center font-extrabold truncate max-w-[70px]">${p}</th>`).join('')}
+            ${state.players.map(p => `<th class="py-2.5 px-1.5 text-center font-extrabold truncate max-w-[75px]">${p}</th>`).join('')}
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-800/60 font-mono">
@@ -1127,9 +1112,9 @@
 
       html += `
         <tr class="border-t-2 border-slate-700 bg-slate-800/80 font-bold">
-          <td colspan="2" class="py-3 px-2 text-left text-white text-sm">Gesamt</td>
+          <td colspan="2" class="py-3 px-2 text-left text-white text-base">Gesamt</td>
           ${state.players.map(p => `
-            <td class="py-3 px-1.5 text-center text-amber-400 font-extrabold text-base">${runningTotals[p]}</td>
+            <td class="py-3 px-1.5 text-center text-amber-400 font-extrabold text-lg">${runningTotals[p]}</td>
           `).join('')}
         </tr>
       </tbody>`;
