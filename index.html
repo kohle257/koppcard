@@ -40,7 +40,7 @@
       user-select: none;
       -webkit-user-select: none;
     }
-    .pixel-tap:active {
+    .pixel-tap:active:not(:disabled) {
       transform: scale(0.96);
       opacity: 0.88;
     }
@@ -76,7 +76,7 @@
   <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       const swCode = `
-        const CACHE = 'koppcard-cache-v5';
+        const CACHE = 'koppcard-cache-v6';
         self.addEventListener('install', e => self.skipWaiting());
         self.addEventListener('activate', e => e.waitUntil(clients.claim()));
         self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
@@ -151,7 +151,7 @@
         <div id="player-chips-container" class="flex flex-wrap gap-2"></div>
       </div>
 
-      <!-- Eingabefelder mit Sortierfunktion (Sitzreihenfolge) -->
+      <!-- Eingabefelder mit Sortierfunktion -->
       <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-2">
         <div class="flex justify-between items-center">
           <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Sitzreihenfolge am Tisch</label>
@@ -185,7 +185,7 @@
       </div>
 
       <!-- Phasen-Hinweis -->
-      <div id="phase-banner" class="bg-indigo-950/40 border border-indigo-900/60 rounded-xl px-3 py-1.5 text-center shrink-0">
+      <div id="phase-banner" class="bg-indigo-950/40 border border-indigo-900/60 rounded-xl px-3 py-2 text-center shrink-0 transition-colors">
         <h3 id="phase-title" class="text-sm font-bold uppercase tracking-wider text-indigo-300">Ansage reihum</h3>
         <p id="phase-subtitle" class="text-xs text-slate-400 mt-0.5">Ansager beginnt</p>
       </div>
@@ -224,12 +224,12 @@
         <span class="text-xl">➔</span>
       </button>
 
-      <!-- Active Game Buttons (mit Schritt-Navigation) -->
+      <!-- Active Game Buttons -->
       <div id="game-action-buttons-wrap" class="hidden flex gap-2">
         <button id="btn-bid-back" class="hidden pixel-tap w-16 h-14 bg-slate-800 text-slate-200 border border-slate-700 text-sm font-bold rounded-2xl flex items-center justify-center">
           ↩
         </button>
-        <button id="btn-main-action" class="pixel-tap flex-1 h-14 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center gap-2">
+        <button id="btn-main-action" class="pixel-tap flex-1 h-14 bg-indigo-600 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none">
           Ansage bestätigen & Weiter
         </button>
       </div>
@@ -351,8 +351,8 @@
       players: [],
       rounds: [],
       currentRoundIndex: 0,
-      phase: 'bids', // 'bids' oder 'tricks'
-      activeBidStep: 0, // 0 = Ansager, bis playerCount - 1 = Geber
+      phase: 'bids',
+      activeBidStep: 0,
       currentBids: {},
       currentTricks: {},
       history: []
@@ -629,7 +629,6 @@
       refreshChipStates();
     }
 
-    // Sortierung im Setup (Spielerplatz tauschen)
     window.movePlayer = function(index, direction) {
       const inputs = Array.from(document.querySelectorAll('.player-name-input'));
       const names = inputs.map(i => i.value);
@@ -783,13 +782,11 @@
       }).join('');
     }
 
-    // Ermittelt Sitz- und Ansagereihenfolge
     function getTurnOrder() {
       const n = state.players.length;
       const dealerIndex = state.currentRoundIndex % n;
       const firstBidderIndex = (dealerIndex + 1) % n;
 
-      // Geordnete Reihenfolge ab Ansager im Uhrzeigersinn bis Geber
       const order = [];
       for (let i = 0; i < n; i++) {
         order.push(state.players[(firstBidderIndex + i) % n]);
@@ -814,13 +811,12 @@
 
       if (state.phase === 'bids') {
         const activePlayer = order[state.activeBidStep];
-        const isLastBidder = (state.activeBidStep === order.length - 1); // Geber ist dran!
+        const isLastBidder = (state.activeBidStep === order.length - 1);
 
         phaseTitle.textContent = `Ansage: ${activePlayer} ist dran`;
         phaseTitle.className = 'text-sm font-bold uppercase tracking-wider text-indigo-300';
         phaseSubtitle.textContent = `Schritt ${state.activeBidStep + 1} von ${order.length} (Karten: ${cards})`;
 
-        // Zurück-Button einblenden wenn Schritt > 0
         if (state.activeBidStep > 0) {
           backBtn.classList.remove('hidden');
         } else {
@@ -832,9 +828,9 @@
         } else {
           actionBtn.textContent = 'Ansage bestätigen & Weiter';
         }
-        actionBtn.className = 'pixel-tap flex-1 h-14 bg-indigo-600 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/40 flex items-center justify-center';
+        actionBtn.disabled = false;
+        actionBtn.className = 'pixel-tap flex-1 h-14 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center';
 
-        // Berechnung der verbotenen Zahl ERST wenn der Geber dran ist
         let forbiddenDealerBid = null;
         if (isLastBidder) {
           let sumOthers = 0;
@@ -842,7 +838,6 @@
           forbiddenDealerBid = cards - sumOthers;
         }
 
-        // Spieler in normaler Tischaufstellung anzeigen
         state.players.forEach((p) => {
           const isGeber = (p === dealerName);
           const isAnsager = (p === firstBidderName);
@@ -856,14 +851,12 @@
           if (isGeber) badgeHtml += `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">Geber</span>`;
           if (isCurrentTurn) badgeHtml += `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">Am Zug</span>`;
 
-          // Warnung nur anzeigen, wenn Geber aktiv dran ist
           let forbiddenWarning = '';
           if (isCurrentTurn && isGeber && forbiddenDealerBid !== null && forbiddenDealerBid >= 0 && forbiddenDealerBid <= cards) {
             forbiddenWarning = `<span class="text-xs font-bold text-rose-400 block mt-0.5">⚠️ Darf nicht ${forbiddenDealerBid} ansagen!</span>`;
           }
 
           const card = document.createElement('div');
-          // Fokus-Styling für den aktiven Spieler
           const containerStyle = isCurrentTurn 
             ? 'bg-slate-900 border-2 border-indigo-500 shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-500/50' 
             : hasAlreadyBid 
@@ -882,11 +875,11 @@
 
             <div class="flex items-center gap-2.5">
               ${isCurrentTurn ? `
-                <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700"
-                  onclick="changeBid('${p}', -1)">−</button>
+                <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none"
+                  onclick="changeBid('${p}', -1)" ${currentVal <= 0 ? 'disabled' : ''}>−</button>
                 <span class="w-8 text-center font-black text-xl text-white font-mono">${currentVal}</span>
-                <button class="pixel-tap w-12 h-12 rounded-xl bg-indigo-600/40 border border-indigo-500/50 text-indigo-200 font-black text-2xl flex items-center justify-center active:bg-indigo-600/60"
-                  onclick="changeBid('${p}', 1)">+</button>
+                <button class="pixel-tap w-12 h-12 rounded-xl bg-indigo-600/40 border border-indigo-500/50 text-indigo-200 font-black text-2xl flex items-center justify-center active:bg-indigo-600/60 disabled:opacity-30 disabled:pointer-events-none"
+                  onclick="changeBid('${p}', 1)" ${currentVal >= cards ? 'disabled' : ''}>+</button>
               ` : `
                 <div class="h-12 flex items-center px-3 rounded-xl bg-slate-950/60 border border-slate-800">
                   <span class="text-xs font-bold text-slate-400 mr-2">${hasAlreadyBid ? 'Tipp:' : 'Wartet'}</span>
@@ -899,18 +892,39 @@
         });
 
       } else {
-        // PHASE 2: ERGEBNIS / STICHE
+        // ================= PHASE 2: ERGEBNIS / STICHE =================
         backBtn.classList.add('hidden');
+        
+        // Summe aller aktuell vergebenen Stiche
+        let currentTrickSum = 0;
+        state.players.forEach(p => currentTrickSum += (state.currentTricks[p] || 0));
+        const remainingTricks = cards - currentTrickSum;
+        const isSumComplete = (currentTrickSum === cards);
+
         phaseTitle.textContent = `Phase 2: Gemachte Stiche (${cards} im Spiel)`;
         phaseTitle.className = 'text-sm font-bold uppercase tracking-wider text-emerald-400';
-        phaseSubtitle.textContent = `Summe aller Stiche muss exakt ${cards} sein`;
+        
+        if (isSumComplete) {
+          phaseSubtitle.innerHTML = `<span class="text-emerald-400 font-bold">✓ Alle ${cards} Stiche verteilt – Abrechnung bereit</span>`;
+        } else {
+          phaseSubtitle.innerHTML = `<span class="text-amber-300 font-semibold">Noch ${remainingTricks} von ${cards} ${cards === 1 ? 'Stich' : 'Stichen'} offen</span>`;
+        }
+
         actionBtn.textContent = 'Runde abrechnen';
-        actionBtn.className = 'pixel-tap flex-1 h-14 bg-emerald-600 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-emerald-600/30 border border-emerald-500/40 flex items-center justify-center';
+        actionBtn.disabled = !isSumComplete;
+
+        if (isSumComplete) {
+          actionBtn.className = 'pixel-tap flex-1 h-14 bg-emerald-600 active:bg-emerald-700 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-emerald-600/30 border border-emerald-500/50 flex items-center justify-center cursor-pointer';
+        } else {
+          actionBtn.className = 'pixel-tap flex-1 h-14 bg-slate-800 text-slate-400 font-extrabold text-lg rounded-2xl border border-slate-700/60 flex items-center justify-center opacity-40 pointer-events-none';
+        }
 
         state.players.forEach((p) => {
           const bid = state.currentBids[p];
           const trick = state.currentTricks[p] || 0;
           const isHitting = (trick === bid);
+          // + Button deaktivieren wenn keine Stiche mehr in der Runde übrig sind
+          const canIncrease = remainingTricks > 0;
 
           const card = document.createElement('div');
           card.className = `p-3 rounded-2xl border ${isHitting ? 'bg-slate-900 border-emerald-500/50' : 'bg-slate-900 border-slate-800'} flex items-center justify-between shadow-sm`;
@@ -926,11 +940,11 @@
             </div>
 
             <div class="flex items-center gap-2.5">
-              <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700"
-                onclick="changeTrick('${p}', -1)">−</button>
+              <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none"
+                onclick="changeTrick('${p}', -1)" ${trick <= 0 ? 'disabled' : ''}>−</button>
               <span class="w-8 text-center font-black text-xl text-white font-mono">${trick}</span>
-              <button class="pixel-tap w-12 h-12 rounded-xl bg-emerald-600/30 border border-emerald-500/40 text-emerald-200 font-black text-2xl flex items-center justify-center active:bg-emerald-600/50"
-                onclick="changeTrick('${p}', 1)">+</button>
+              <button class="pixel-tap w-12 h-12 rounded-xl bg-emerald-600/30 border border-emerald-500/40 text-emerald-200 font-black text-2xl flex items-center justify-center active:bg-emerald-600/50 disabled:opacity-20 disabled:pointer-events-none"
+                onclick="changeTrick('${p}', 1)" ${!canIncrease ? 'disabled' : ''}>+</button>
             </div>
           `;
           listContainer.appendChild(card);
@@ -953,14 +967,21 @@
       const cards = state.rounds[state.currentRoundIndex];
       const current = state.currentTricks[player] || 0;
       const next = current + delta;
-      if (next >= 0 && next <= cards) {
+      
+      // Summe aller anderen Spieler
+      let sumOthers = 0;
+      state.players.forEach(p => {
+        if (p !== player) sumOthers += (state.currentTricks[p] || 0);
+      });
+
+      // Strikte Obergrenze: Eigene Stiche + Stiche der anderen dürfen NIEMALS die Rundenzahl übersteigen
+      if (next >= 0 && (sumOthers + next) <= cards) {
         state.currentTricks[player] = next;
         saveGameState();
         renderPhaseView();
       }
     };
 
-    // Zurück zum vorherigen Ansager
     document.getElementById('btn-bid-back').onclick = () => {
       if (state.phase === 'bids' && state.activeBidStep > 0) {
         state.activeBidStep -= 1;
@@ -969,7 +990,6 @@
       }
     };
 
-    // Primärbutton Klick-Logik
     document.getElementById('btn-main-action').onclick = () => {
       const cards = state.rounds[state.currentRoundIndex];
       const { order } = getTurnOrder();
@@ -978,12 +998,10 @@
         const isLastBidder = (state.activeBidStep === order.length - 1);
 
         if (!isLastBidder) {
-          // Nächster Spieler ist dran
           state.activeBidStep += 1;
           saveGameState();
           renderPhaseView();
         } else {
-          // Geber schließt ab: Verbotene Summe prüfen
           let totalBids = 0;
           state.players.forEach(p => totalBids += (state.currentBids[p] || 0));
 
@@ -992,7 +1010,6 @@
             return;
           }
 
-          // Übergang zur Spielphase (Stiche)
           state.phase = 'tricks';
           state.players.forEach(p => state.currentTricks[p] = 0);
           saveGameState();
@@ -1000,13 +1017,12 @@
         }
 
       } else {
-        // Phase 2 Stiche abrechnen
+        // Phase 2: Stiche abrechnen
         let totalTricks = 0;
         state.players.forEach(p => totalTricks += (state.currentTricks[p] || 0));
 
         if (totalTricks !== cards) {
-          alert(`Fehler bei den Stichen: Es wurden ${totalTricks} Stiche erfasst, es müssen aber genau ${cards} sein!`);
-          return;
+          return; // Button ist ohnehin disabled, aber als Guardrail
         }
 
         const roundScores = {};
@@ -1031,7 +1047,7 @@
         if (state.currentRoundIndex + 1 < state.rounds.length) {
           state.currentRoundIndex += 1;
           state.phase = 'bids';
-          state.activeBidStep = 0; // Ansager startet wieder
+          state.activeBidStep = 0;
           state.currentBids = {};
           state.currentTricks = {};
           saveGameState();
