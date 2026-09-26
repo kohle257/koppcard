@@ -424,4 +424,720 @@
             totalPoints: 0,
             highestScore: 0,
             bidsStats: {}
- 
+          };
+        }
+
+        const ps = stats[p];
+        ps.gamesPlayed += 1;
+        const playerFinalScore = totals[p];
+        ps.totalPoints += playerFinalScore;
+        if (playerFinalScore > ps.highestScore) ps.highestScore = playerFinalScore;
+        if (playerFinalScore === maxScore) ps.gamesWon += 1;
+
+        state.history.forEach(round => {
+          const bid = round.bids[p];
+          const trick = round.tricks[p];
+          if (bid !== undefined && trick !== undefined) {
+            const bidKey = String(bid);
+            if (!ps.bidsStats[bidKey]) {
+              ps.bidsStats[bidKey] = { total: 0, hits: 0 };
+            }
+            ps.bidsStats[bidKey].total += 1;
+            if (bid === trick) {
+              ps.bidsStats[bidKey].hits += 1;
+            }
+          }
+        });
+      });
+
+      saveStatistics(stats);
+    }
+
+    function renderStatisticsModal() {
+      const stats = loadStatistics();
+      const container = document.getElementById('stats-content-list');
+      const playerKeys = Object.keys(stats);
+
+      if (playerKeys.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-500 text-sm">
+            <span class="text-3xl block mb-2">📭</span>
+            Noch keine Spiele beendet.<br>Statistiken werden nach jedem vollständigen Spiel automatisch gespeichert.
+          </div>
+        `;
+        return;
+      }
+
+      playerKeys.sort((a, b) => {
+        if (stats[b].gamesWon !== stats[a].gamesWon) {
+          return stats[b].gamesWon - stats[a].gamesWon;
+        }
+        const avgB = stats[b].totalPoints / (stats[b].gamesPlayed || 1);
+        const avgA = stats[a].totalPoints / (stats[a].gamesPlayed || 1);
+        return avgB - avgA;
+      });
+
+      let html = '';
+      playerKeys.forEach(name => {
+        const ps = stats[name];
+        const avg = (ps.totalPoints / (ps.gamesPlayed || 1)).toFixed(1);
+        const winRate = ((ps.gamesWon / (ps.gamesPlayed || 1)) * 100).toFixed(0);
+
+        const bidKeys = Object.keys(ps.bidsStats).map(Number).sort((a,b) => a - b);
+        let bidsHtml = '';
+
+        if (bidKeys.length > 0) {
+          bidsHtml = `
+            <div class="mt-3 pt-2.5 border-t border-slate-700/60">
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                Trefferquote nach Ansage:
+              </span>
+              <div class="grid grid-cols-2 gap-1.5">
+                ${bidKeys.map(k => {
+                  const b = ps.bidsStats[String(k)];
+                  const rate = b.total > 0 ? ((b.hits / b.total) * 100).toFixed(0) : 0;
+                  return `
+                    <div class="bg-slate-900/90 rounded-lg px-2.5 py-1.5 text-xs flex justify-between items-center border border-slate-700/40">
+                      <span class="font-bold text-indigo-300">${k}${k === 1 ? 'Stich' : 'Stiche'}:</span>
+                      <span class="font-mono font-bold ${rate >= 50 ? 'text-emerald-400' : 'text-slate-400'}">${b.hits}/${b.total} (${rate}%)</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        html += `
+          <div class="bg-slate-800/70 border border-slate-700 p-3.5 rounded-2xl">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="font-extrabold text-white text-base">${name}</span>
+                <span class="text-xs text-slate-400 ml-2 font-medium">${ps.gamesPlayed} Spiele</span>
+              </div>
+              <div class="text-right">
+                <span class="text-sm font-black text-amber-300">🏆 ${ps.gamesWon} Siege</span>
+                <span class="text-xs text-slate-400 block font-medium">Quote: ${winRate}%</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 mt-2.5 text-center">
+              <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-700/30">
+                <span class="text-xs text-slate-400 block font-medium">Punkte-Schnitt</span>
+                <span class="font-black text-base text-slate-200">${avg} Pkt</span>
+              </div>
+              <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-700/30">
+                <span class="text-xs text-slate-400 block font-medium">Rekord</span>
+                <span class="font-black text-base text-emerald-400">${ps.highestScore} Pkt</span>
+              </div>
+            </div>
+
+            ${bidsHtml}
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function loadSavedNames() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY_PLAYERS);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            knownPlayerNames = parsed;
+            return;
+          }
+        }
+      } catch (e) {}
+      knownPlayerNames = [...DEFAULT_KNOWN_PLAYERS];
+    }
+
+    function saveCurrentNames(names) {
+      names.forEach(name => {
+        const trimmed = name.trim();
+        if (trimmed && !knownPlayerNames.includes(trimmed)) {
+          knownPlayerNames.push(trimmed);
+        }
+      });
+      localStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(knownPlayerNames));
+    }
+
+    function saveGameState() {
+      localStorage.setItem(STORAGE_KEY_GAME, JSON.stringify(state));
+    }
+
+    function restoreSavedGame() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_GAME);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (saved && saved.players && saved.players.length >= 3 && saved.rounds && saved.rounds.length > 0) {
+            state = saved;
+            return true;
+          }
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    function getSelectedNamesFromInputs() {
+      const inputs = document.querySelectorAll('.player-name-input');
+      return Array.from(inputs).map(inp => inp.value.trim());
+    }
+
+    function refreshChipStates() {
+      const activeNames = getSelectedNamesFromInputs().filter(n => n.length > 0);
+      const chips = document.querySelectorAll('.player-chip-btn');
+      chips.forEach(chip => {
+        const name = chip.getAttribute('data-name');
+        if (activeNames.includes(name)) {
+          chip.className = 'player-chip-btn pixel-tap px-3.5 py-2.5 rounded-xl text-sm font-bold border transition-colors bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30 flex items-center gap-1.5';
+          chip.innerHTML = `<span>✓</span> <span>${name}</span>`;
+        } else {
+          chip.className = 'player-chip-btn pixel-tap px-3.5 py-2.5 rounded-xl text-sm font-bold border transition-colors bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600 flex items-center gap-1.5';
+          chip.innerHTML = `<span>${name}</span>`;
+        }
+      });
+    }
+
+    function renderPlayerChips() {
+      const container = document.getElementById('player-chips-container');
+      container.innerHTML = '';
+      knownPlayerNames.forEach(name => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('data-name', name);
+        btn.className = 'player-chip-btn pixel-tap px-3.5 py-2.5 rounded-xl text-sm font-bold border transition-colors bg-slate-800 text-slate-300 border-slate-700 flex items-center gap-1.5';
+        btn.innerHTML = `<span>${name}</span>`;
+
+        btn.onclick = () => {
+          handleChipClick(name);
+        };
+        container.appendChild(btn);
+      });
+      refreshChipStates();
+    }
+
+    function handleChipClick(name) {
+      const inputs = Array.from(document.querySelectorAll('.player-name-input'));
+      const existingInput = inputs.find(inp => inp.value.trim() === name);
+      if (existingInput) {
+        existingInput.value = '';
+        refreshChipStates();
+        return;
+      }
+      const nextEmpty = inputs.find(inp => inp.value.trim() === '');
+      if (nextEmpty) {
+        nextEmpty.value = name;
+      } else {
+        if (inputs.length > 0) inputs[0].value = name;
+      }
+      refreshChipStates();
+    }
+
+    function renderSetupPlayerInputs() {
+      const container = document.getElementById('player-inputs-container');
+      container.innerHTML = '';
+      for (let i = 0; i < state.playerCount; i++) {
+        const defaultName = knownPlayerNames[i] || `Spieler ${i + 1}`;
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2.5';
+        row.innerHTML = `
+          <span class="w-10 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-extrabold text-slate-300">
+            ${i + 1}
+          </span>
+          <input type="text" value="${defaultName}" placeholder="Spieler ${i + 1}"
+            class="player-name-input flex-1 h-12 bg-slate-800/90 text-white font-bold text-base px-4 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 transition-colors">
+        `;
+        container.appendChild(row);
+      }
+
+      document.querySelectorAll('.player-name-input').forEach(input => {
+        input.addEventListener('input', () => refreshChipStates());
+      });
+
+      refreshChipStates();
+      updatePyramidInfo();
+    }
+
+    function updatePyramidInfo() {
+      const maxCards = Math.floor(32 / state.playerCount);
+      const totalRounds = (maxCards * 2) - 1;
+      document.getElementById('pyramid-info-text').textContent = 
+        `Pyramide: 1 → ${maxCards} → 1 Karte (${totalRounds} Runden)`;
+    }
+
+    function setupPlayerCountSelector() {
+      const buttons = document.querySelectorAll('#player-count-selector .count-btn');
+      buttons.forEach(btn => {
+        btn.onclick = () => {
+          const count = parseInt(btn.dataset.count);
+          state.playerCount = count;
+          buttons.forEach(b => {
+            b.className = 'count-btn pixel-tap h-12 rounded-xl border font-bold text-lg bg-slate-800 border-slate-700 text-slate-200';
+          });
+          btn.className = 'count-btn pixel-tap h-12 rounded-xl border font-bold text-lg bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30';
+          renderSetupPlayerInputs();
+        };
+      });
+    }
+
+    function generatePyramidRounds(playerCount) {
+      const maxCards = Math.floor(32 / playerCount);
+      const rounds = [];
+      for (let c = 1; c <= maxCards; c++) rounds.push(c);
+      for (let c = maxCards - 1; c >= 1; c--) rounds.push(c);
+      return rounds;
+    }
+
+    function startNewGame() {
+      const inputs = document.querySelectorAll('.player-name-input');
+      const names = [];
+      inputs.forEach((inp, idx) => {
+        const val = inp.value.trim();
+        names.push(val || `Spieler ${idx + 1}`);
+      });
+
+      saveCurrentNames(names);
+      renderPlayerChips();
+
+      state.players = names;
+      state.rounds = generatePyramidRounds(names.length);
+      state.currentRoundIndex = 0;
+      state.phase = 'bids';
+      state.currentBids = {};
+      state.currentTricks = {};
+      state.history = [];
+
+      saveGameState();
+      showScreen('screen-game');
+      initCurrentRound();
+    }
+
+    function initCurrentRound() {
+      const cards = state.rounds[state.currentRoundIndex];
+      const isFirst = state.currentRoundIndex === 0;
+      const isLast = state.currentRoundIndex === state.rounds.length - 1;
+
+      document.getElementById('badge-round-info').textContent = 
+        `Runde ${state.currentRoundIndex + 1} / ${state.rounds.length} (${cards} ${cards === 1 ? 'Karte' : 'Karten'})`;
+      
+      const stirnBadge = document.getElementById('badge-stirn');
+      if (isFirst || isLast) {
+        stirnBadge.classList.remove('hidden');
+      } else {
+        stirnBadge.classList.add('hidden');
+      }
+
+      state.players.forEach(p => {
+        if (state.currentBids[p] === undefined) state.currentBids[p] = 0;
+        if (state.currentTricks[p] === undefined) state.currentTricks[p] = 0;
+      });
+
+      renderLeaderboard();
+      renderPhaseView();
+    }
+
+    function renderLeaderboard() {
+      const container = document.getElementById('leaderboard-container');
+      const totals = {};
+      state.players.forEach(p => totals[p] = 0);
+
+      state.history.forEach(round => {
+        state.players.forEach(p => {
+          totals[p] += (round.scores[p] || 0);
+        });
+      });
+
+      const sorted = [...state.players].sort((a, b) => totals[b] - totals[a]);
+      const topScore = sorted.length > 0 ? totals[sorted[0]] : 0;
+
+      container.innerHTML = state.players.map(p => {
+        const score = totals[p];
+        const isLeader = score === topScore && state.history.length > 0;
+        return `
+          <div class="bg-slate-800/80 border ${isLeader ? 'border-amber-500/60 bg-amber-950/20' : 'border-slate-700/60'} py-1.5 px-2 rounded-xl flex flex-col items-center">
+            <span class="text-xs font-bold text-slate-300 truncate max-w-[80px]">${p}</span>
+            <span class="text-lg font-black ${isLeader ? 'text-amber-400' : 'text-white'} leading-tight">${score}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getDealerAndFirstBidderIndexes() {
+      const dealerIndex = state.currentRoundIndex % state.players.length;
+      const firstBidderIndex = (dealerIndex + 1) % state.players.length;
+      return { dealerIndex, firstBidderIndex };
+    }
+
+    function renderPhaseView() {
+      const cards = state.rounds[state.currentRoundIndex];
+      const { dealerIndex, firstBidderIndex } = getDealerAndFirstBidderIndexes();
+      const dealerName = state.players[dealerIndex];
+      const firstBidderName = state.players[firstBidderIndex];
+
+      const phaseTitle = document.getElementById('phase-title');
+      const phaseSubtitle = document.getElementById('phase-subtitle');
+      const actionBtn = document.getElementById('btn-main-action');
+      const listContainer = document.getElementById('stepper-list-container');
+      listContainer.innerHTML = '';
+
+      if (state.phase === 'bids') {
+        phaseTitle.textContent = `Phase 1: Ansagen (${cards} ${cards === 1 ? 'Karte' : 'Karten'})`;
+        phaseTitle.className = 'text-sm font-bold uppercase tracking-wider text-indigo-300';
+        phaseSubtitle.textContent = `Summe aller Ansagen darf nicht ${cards} sein`;
+        actionBtn.textContent = 'Ansagen bestätigen';
+        actionBtn.className = 'pixel-tap w-full h-14 bg-indigo-600 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/40 flex items-center justify-center';
+
+        let sumOthers = 0;
+        state.players.forEach(p => {
+          if (p !== dealerName) sumOthers += (state.currentBids[p] || 0);
+        });
+        const forbiddenDealerBid = cards - sumOthers;
+
+        state.players.forEach((p) => {
+          const isGeber = (p === dealerName);
+          const isAnsager = (p === firstBidderName);
+          const currentVal = state.currentBids[p] || 0;
+
+          let badgeHtml = '';
+          if (isAnsager) badgeHtml += `<span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">Ansager</span>`;
+          if (isGeber) badgeHtml += `<span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">Geber</span>`;
+
+          let forbiddenWarning = '';
+          if (isGeber && forbiddenDealerBid >= 0 && forbiddenDealerBid <= cards) {
+            forbiddenWarning = `<span class="text-xs font-bold text-rose-400 block mt-0.5">⚠️ Darf nicht ${forbiddenDealerBid} ansagen</span>`;
+          }
+
+          const card = document.createElement('div');
+          card.className = `p-3 rounded-2xl border ${isGeber ? 'bg-slate-900 border-amber-500/50' : 'bg-slate-900 border-slate-800'} flex items-center justify-between shadow-sm`;
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-extrabold text-white text-base">${p}</span>
+                ${badgeHtml}
+              </div>
+              ${forbiddenWarning}
+            </div>
+
+            <!-- Stepper Controls (Ergonomische 52px Touch-Buttons) -->
+            <div class="flex items-center gap-2.5">
+              <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700"
+                onclick="changeBid('${p}', -1)">−</button>
+              <span class="w-8 text-center font-black text-xl text-white font-mono">${currentVal}</span>
+              <button class="pixel-tap w-12 h-12 rounded-xl bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 font-black text-2xl flex items-center justify-center active:bg-indigo-600/50"
+                onclick="changeBid('${p}', 1)">+</button>
+            </div>
+          `;
+          listContainer.appendChild(card);
+        });
+
+      } else {
+        // PHASE 2: ERGEBNIS / STICHE
+        phaseTitle.textContent = `Phase 2: Gemachte Stiche (${cards} im Spiel)`;
+        phaseTitle.className = 'text-sm font-bold uppercase tracking-wider text-emerald-400';
+        phaseSubtitle.textContent = `Summe aller Stiche muss exakt ${cards} sein`;
+        actionBtn.textContent = 'Runde abrechnen';
+        actionBtn.className = 'pixel-tap w-full h-14 bg-emerald-600 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-emerald-600/30 border border-emerald-500/40 flex items-center justify-center';
+
+        state.players.forEach((p) => {
+          const bid = state.currentBids[p];
+          const trick = state.currentTricks[p] || 0;
+          const isHitting = (trick === bid);
+
+          const card = document.createElement('div');
+          card.className = `p-3 rounded-2xl border ${isHitting ? 'bg-slate-900 border-emerald-500/50' : 'bg-slate-900 border-slate-800'} flex items-center justify-between shadow-sm`;
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-extrabold text-white text-base">${p}</span>
+                <span class="text-xs px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 font-mono font-bold">Ansage: ${bid}</span>
+              </div>
+              <span class="text-xs ${isHitting ? 'text-emerald-400 font-bold' : 'text-slate-400'} block mt-1">
+                ${isHitting ? '🎯 Treffer (+10 Pkt)' : 'Kein Bonus'}
+              </span>
+            </div>
+
+            <!-- Stepper Controls -->
+            <div class="flex items-center gap-2.5">
+              <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700"
+                onclick="changeTrick('${p}', -1)">−</button>
+              <span class="w-8 text-center font-black text-xl text-white font-mono">${trick}</span>
+              <button class="pixel-tap w-12 h-12 rounded-xl bg-emerald-600/30 border border-emerald-500/40 text-emerald-200 font-black text-2xl flex items-center justify-center active:bg-emerald-600/50"
+                onclick="changeTrick('${p}', 1)">+</button>
+            </div>
+          `;
+          listContainer.appendChild(card);
+        });
+      }
+    }
+
+    window.changeBid = function(player, delta) {
+      const cards = state.rounds[state.currentRoundIndex];
+      const current = state.currentBids[player] || 0;
+      const next = current + delta;
+      if (next >= 0 && next <= cards) {
+        state.currentBids[player] = next;
+        saveGameState();
+        renderPhaseView();
+      }
+    };
+
+    window.changeTrick = function(player, delta) {
+      const cards = state.rounds[state.currentRoundIndex];
+      const current = state.currentTricks[player] || 0;
+      const next = current + delta;
+      if (next >= 0 && next <= cards) {
+        state.currentTricks[player] = next;
+        saveGameState();
+        renderPhaseView();
+      }
+    };
+
+    document.getElementById('btn-main-action').onclick = () => {
+      const cards = state.rounds[state.currentRoundIndex];
+
+      if (state.phase === 'bids') {
+        let totalBids = 0;
+        state.players.forEach(p => totalBids += (state.currentBids[p] || 0));
+
+        if (totalBids === cards) {
+          alert(`Ungültige Ansagen: Die Summe aller Ansagen darf nicht ${cards} ergeben! Der Geber muss anpassen.`);
+          return;
+        }
+
+        state.phase = 'tricks';
+        state.players.forEach(p => state.currentTricks[p] = 0);
+        saveGameState();
+        renderPhaseView();
+
+      } else {
+        let totalTricks = 0;
+        state.players.forEach(p => totalTricks += (state.currentTricks[p] || 0));
+
+        if (totalTricks !== cards) {
+          alert(`Fehler bei den Stichen: Es wurden ${totalTricks} Stiche erfasst, es müssen aber genau ${cards} sein!`);
+          return;
+        }
+
+        const roundScores = {};
+        state.players.forEach(p => {
+          const bid = state.currentBids[p] || 0;
+          const trick = state.currentTricks[p] || 0;
+          let pts = trick;
+          if (bid === trick) {
+            pts += 10;
+          }
+          roundScores[p] = pts;
+        });
+
+        state.history.push({
+          round: state.currentRoundIndex + 1,
+          cards: cards,
+          bids: { ...state.currentBids },
+          tricks: { ...state.currentTricks },
+          scores: roundScores
+        });
+
+        if (state.currentRoundIndex + 1 < state.rounds.length) {
+          state.currentRoundIndex += 1;
+          state.phase = 'bids';
+          state.currentBids = {};
+          state.currentTricks = {};
+          saveGameState();
+          initCurrentRound();
+        } else {
+          recordGameInStatistics();
+          saveGameState();
+          showGameOverScreen();
+        }
+      }
+    };
+
+    function showGameOverScreen() {
+      showScreen('screen-gameover');
+      const totals = {};
+      state.players.forEach(p => totals[p] = 0);
+      state.history.forEach(r => {
+        state.players.forEach(p => {
+          totals[p] += (r.scores[p] || 0);
+        });
+      });
+
+      const sorted = [...state.players].sort((a, b) => totals[b] - totals[a]);
+      const winner = sorted[0];
+      const winScore = totals[winner];
+
+      document.getElementById('gameover-winner-text').textContent = 
+        `${winner} gewinnt mit ${winScore} Punkten!`;
+
+      const list = document.getElementById('gameover-ranking-list');
+      list.innerHTML = sorted.map((p, idx) => `
+        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/80 border border-slate-700">
+          <div class="flex items-center gap-2.5">
+            <span class="w-7 text-center font-extrabold ${idx === 0 ? 'text-amber-400 text-lg' : 'text-slate-400 text-sm'}">#${idx + 1}</span>
+            <span class="font-bold text-base text-white">${p}</span>
+          </div>
+          <span class="font-black text-base text-slate-100 font-mono">${totals[p]} Pkt</span>
+        </div>
+      `).join('');
+    }
+
+    function renderScorecardModal() {
+      const table = document.getElementById('scorecard-table');
+      if (state.players.length === 0) return;
+
+      let html = `
+        <thead>
+          <tr class="border-b border-slate-700 text-slate-300">
+            <th class="py-2.5 px-1.5 text-center font-extrabold">Rd</th>
+            <th class="py-2.5 px-1.5 text-center font-extrabold">K</th>
+            ${state.players.map(p => `<th class="py-2.5 px-1.5 text-center font-extrabold truncate max-w-[70px]">${p}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60 font-mono">
+      `;
+
+      const runningTotals = {};
+      state.players.forEach(p => runningTotals[p] = 0);
+
+      state.history.forEach((h) => {
+        state.players.forEach(p => runningTotals[p] += h.scores[p]);
+        html += `
+          <tr class="hover:bg-slate-800/40">
+            <td class="py-2.5 px-1.5 text-center text-slate-300 font-bold">${h.round}</td>
+            <td class="py-2.5 px-1.5 text-center text-slate-400">${h.cards}</td>
+            ${state.players.map(p => {
+              const hit = (h.bids[p] === h.tricks[p]);
+              return `
+                <td class="py-2.5 px-1.5 text-center ${hit ? 'text-emerald-400 font-bold' : 'text-slate-300'}">
+                  ${h.scores[p]} <span class="text-xs text-slate-500 font-normal">(${h.tricks[p]}/${h.bids[p]})</span>
+                </td>
+              `;
+            }).join('')}
+          </tr>
+        `;
+      });
+
+      html += `
+        <tr class="border-t-2 border-slate-700 bg-slate-800/80 font-bold">
+          <td colspan="2" class="py-3 px-2 text-left text-white text-sm">Gesamt</td>
+          ${state.players.map(p => `
+            <td class="py-3 px-1.5 text-center text-amber-400 font-extrabold text-base">${runningTotals[p]}</td>
+          `).join('')}
+        </tr>
+      </tbody>`;
+
+      table.innerHTML = html;
+    }
+
+    document.getElementById('btn-undo-round').onclick = () => {
+      if (state.history.length === 0) {
+        alert('Keine abgeschlossene Runde zum Löschen vorhanden.');
+        return;
+      }
+      if (confirm('Letzte Runde wirklich rückgängig machen?')) {
+        const last = state.history.pop();
+        state.currentRoundIndex = last.round - 1;
+        state.phase = 'bids';
+        state.currentBids = { ...last.bids };
+        state.currentTricks = { ...last.tricks };
+        saveGameState();
+        document.getElementById('modal-scorecard').classList.add('hidden');
+        showScreen('screen-game');
+        initCurrentRound();
+      }
+    };
+
+    function showScreen(screenId) {
+      document.getElementById('screen-setup').classList.add('hidden');
+      document.getElementById('screen-game').classList.add('hidden');
+      document.getElementById('screen-gameover').classList.add('hidden');
+
+      const btnStart = document.getElementById('btn-start-game');
+      const btnAction = document.getElementById('btn-main-action');
+      const btnRestart = document.getElementById('btn-restart-from-gameover');
+
+      btnStart.classList.add('hidden');
+      btnAction.classList.add('hidden');
+      btnRestart.classList.add('hidden');
+
+      if (screenId === 'screen-setup') {
+        document.getElementById('screen-setup').classList.remove('hidden');
+        btnStart.classList.remove('hidden');
+      } else if (screenId === 'screen-game') {
+        document.getElementById('screen-game').classList.remove('hidden');
+        btnAction.classList.remove('hidden');
+      } else if (screenId === 'screen-gameover') {
+        document.getElementById('screen-gameover').classList.remove('hidden');
+        btnRestart.classList.remove('hidden');
+      }
+    }
+
+    /* Modal Navigation */
+    document.getElementById('btn-open-rules').onclick = () => document.getElementById('modal-rules').classList.remove('hidden');
+    document.getElementById('btn-close-rules').onclick = () => document.getElementById('modal-rules').classList.add('hidden');
+
+    document.getElementById('btn-open-scorecard').onclick = () => {
+      renderScorecardModal();
+      document.getElementById('modal-scorecard').classList.remove('hidden');
+    };
+    document.getElementById('btn-close-scorecard').onclick = () => document.getElementById('modal-scorecard').classList.add('hidden');
+
+    const openStats = () => {
+      renderStatisticsModal();
+      document.getElementById('modal-stats').classList.remove('hidden');
+    };
+    document.getElementById('btn-open-stats-nav').onclick = openStats;
+    document.getElementById('btn-open-stats-setup').onclick = openStats;
+    document.getElementById('btn-open-stats-gameover').onclick = openStats;
+
+    const closeStats = () => document.getElementById('modal-stats').classList.add('hidden');
+    document.getElementById('btn-close-stats').onclick = closeStats;
+    document.getElementById('btn-close-stats-bottom').onclick = closeStats;
+
+    document.getElementById('btn-reset-stats').onclick = () => {
+      if (confirm('Möchtest du die gesamte gespeicherte Statistik wirklich zurücksetzen?')) {
+        localStorage.removeItem(STORAGE_KEY_STATS);
+        renderStatisticsModal();
+      }
+    };
+
+    document.getElementById('btn-request-reset').onclick = () => {
+      document.getElementById('modal-confirm-reset').classList.remove('hidden');
+    };
+    document.getElementById('btn-cancel-reset').onclick = () => {
+      document.getElementById('modal-confirm-reset').classList.add('hidden');
+    };
+    document.getElementById('btn-confirm-reset').onclick = () => {
+      localStorage.removeItem(STORAGE_KEY_GAME);
+      document.getElementById('modal-confirm-reset').classList.add('hidden');
+      showScreen('screen-setup');
+      renderSetupPlayerInputs();
+    };
+
+    document.getElementById('btn-restart-from-gameover').onclick = () => {
+      localStorage.removeItem(STORAGE_KEY_GAME);
+      showScreen('screen-setup');
+      renderSetupPlayerInputs();
+    };
+
+    document.getElementById('btn-start-game').onclick = startNewGame;
+
+    /* Bootstrapping */
+    loadSavedNames();
+    setupPlayerCountSelector();
+
+    if (restoreSavedGame()) {
+      showScreen('screen-game');
+      initCurrentRound();
+    } else {
+      showScreen('screen-setup');
+      renderPlayerChips();
+      renderSetupPlayerInputs();
+    }
+  </script>
+</body>
+</html>
