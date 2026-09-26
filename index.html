@@ -31,11 +31,9 @@
   </script>
 
   <style>
-    /* Safe Area Insets für moderne Smartphones */
     .safe-top { padding-top: max(env(safe-area-inset-top, 16px), 16px); }
     .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px); }
     
-    /* Native Android Material Touch Feedback */
     .pixel-tap {
       transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.12s ease;
       touch-action: manipulation;
@@ -75,11 +73,10 @@
     document.head.appendChild(manifestLink);
   </script>
 
-  <!-- Service Worker Registrierung -->
   <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       const swCode = `
-        const CACHE = 'koppcard-cache-v4';
+        const CACHE = 'koppcard-cache-v5';
         self.addEventListener('install', e => self.skipWaiting());
         self.addEventListener('activate', e => e.waitUntil(clients.claim()));
         self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
@@ -151,17 +148,16 @@
       <!-- Namenschips -->
       <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl space-y-2">
         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Spieler antippen</label>
-        <div id="player-chips-container" class="flex flex-wrap gap-2">
-          <!-- Dynamische Badges -->
-        </div>
+        <div id="player-chips-container" class="flex flex-wrap gap-2"></div>
       </div>
 
-      <!-- Eingabefelder -->
+      <!-- Eingabefelder mit Sortierfunktion (Sitzreihenfolge) -->
       <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-2">
-        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Aufstellung am Tisch</label>
-        <div id="player-inputs-container" class="space-y-2">
-          <!-- Dynamische Inputs -->
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Sitzreihenfolge am Tisch</label>
+          <span class="text-[11px] text-slate-400">Mit ▲/▼ anordnen</span>
         </div>
+        <div id="player-inputs-container" class="space-y-2"></div>
       </div>
     </section>
 
@@ -185,22 +181,17 @@
           </button>
         </div>
 
-        <!-- Leaderboard -->
-        <div id="leaderboard-container" class="grid grid-flow-col auto-cols-fr gap-2 pt-2 text-center">
-          <!-- Dynamische Spieler-Kacheln -->
-        </div>
+        <div id="leaderboard-container" class="grid grid-flow-col auto-cols-fr gap-2 pt-2 text-center"></div>
       </div>
 
       <!-- Phasen-Hinweis -->
       <div id="phase-banner" class="bg-indigo-950/40 border border-indigo-900/60 rounded-xl px-3 py-1.5 text-center shrink-0">
-        <h3 id="phase-title" class="text-sm font-bold uppercase tracking-wider text-indigo-300">Phase 1: Ansagen erfassen</h3>
-        <p id="phase-subtitle" class="text-xs text-slate-400 mt-0.5">Summe darf nicht Kartenzahl sein</p>
+        <h3 id="phase-title" class="text-sm font-bold uppercase tracking-wider text-indigo-300">Ansage reihum</h3>
+        <p id="phase-subtitle" class="text-xs text-slate-400 mt-0.5">Ansager beginnt</p>
       </div>
 
-      <!-- Stepper-Liste (kompakter, gut lesbar) -->
-      <div id="stepper-list-container" class="space-y-2 flex-1 justify-center flex flex-col">
-        <!-- Dynamische Stepper pro Spieler -->
-      </div>
+      <!-- Stepper-Liste -->
+      <div id="stepper-list-container" class="space-y-2 flex-1 justify-center flex flex-col"></div>
     </section>
 
     <!-- ================= 3. GAME OVER SCREEN ================= -->
@@ -213,9 +204,7 @@
         <p id="gameover-winner-text" class="text-lg text-amber-300 font-bold mt-1">Christian gewinnt mit 72 Punkten</p>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-2 text-left" id="gameover-ranking-list">
-        <!-- Endrangliste -->
-      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-2 text-left" id="gameover-ranking-list"></div>
 
       <div class="flex gap-2 pt-2">
         <button id="btn-open-stats-gameover" class="pixel-tap flex-1 h-14 bg-slate-800 border border-slate-700 text-white font-bold rounded-2xl text-base">
@@ -235,10 +224,15 @@
         <span class="text-xl">➔</span>
       </button>
 
-      <!-- Game Active Button -->
-      <button id="btn-main-action" class="hidden pixel-tap w-full h-14 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center gap-2">
-        Ansagen bestätigen
-      </button>
+      <!-- Active Game Buttons (mit Schritt-Navigation) -->
+      <div id="game-action-buttons-wrap" class="hidden flex gap-2">
+        <button id="btn-bid-back" class="hidden pixel-tap w-16 h-14 bg-slate-800 text-slate-200 border border-slate-700 text-sm font-bold rounded-2xl flex items-center justify-center">
+          ↩
+        </button>
+        <button id="btn-main-action" class="pixel-tap flex-1 h-14 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/50 flex items-center justify-center gap-2">
+          Ansage bestätigen & Weiter
+        </button>
+      </div>
 
       <!-- Gameover Button -->
       <button id="btn-restart-from-gameover" class="hidden pixel-tap w-full h-14 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30">
@@ -261,9 +255,7 @@
         <button id="btn-close-stats" class="pixel-tap w-10 h-10 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-base">✕</button>
       </div>
 
-      <div id="stats-content-list" class="overflow-y-auto py-3 space-y-3.5 flex-1 pr-1">
-        <!-- Statistiken -->
-      </div>
+      <div id="stats-content-list" class="overflow-y-auto py-3 space-y-3.5 flex-1 pr-1"></div>
 
       <div class="pt-2 border-t border-slate-800 flex justify-between items-center safe-bottom">
         <button id="btn-reset-stats" class="pixel-tap text-xs text-rose-400 font-semibold px-3 py-2.5 rounded-xl bg-rose-950/40 border border-rose-900/60">
@@ -288,9 +280,7 @@
       </div>
 
       <div class="overflow-y-auto py-2 flex-1">
-        <table class="w-full text-sm text-left border-collapse" id="scorecard-table">
-          <!-- Dynamische Tabelle -->
-        </table>
+        <table class="w-full text-sm text-left border-collapse" id="scorecard-table"></table>
       </div>
 
       <div class="pt-3 border-t border-slate-800 safe-bottom">
@@ -321,7 +311,7 @@
         </div>
         <div class="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
           <p class="font-bold text-white mb-1">🚫 Verbotene Summe:</p>
-          <p>Der Geber darf seine Ansage niemals so wählen, dass die Summe aller Ansagen genau der Rundenzahl entspricht.</p>
+          <p>Der Geber tippt als Letzter. Seine Ansage darf niemals so gewählt werden, dass die Summe aller Ansagen genau der Rundenzahl entspricht.</p>
         </div>
         <div class="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
           <p class="font-bold text-white mb-1">🏆 Wertung:</p>
@@ -361,7 +351,8 @@
       players: [],
       rounds: [],
       currentRoundIndex: 0,
-      phase: 'bids',
+      phase: 'bids', // 'bids' oder 'tricks'
+      activeBidStep: 0, // 0 = Ansager, bis playerCount - 1 = Geber
       currentBids: {},
       currentTricks: {},
       history: []
@@ -575,6 +566,7 @@
           const saved = JSON.parse(raw);
           if (saved && saved.players && saved.players.length >= 3 && saved.rounds && saved.rounds.length > 0) {
             state = saved;
+            if (state.activeBidStep === undefined) state.activeBidStep = 0;
             return true;
           }
         }
@@ -593,10 +585,10 @@
       chips.forEach(chip => {
         const name = chip.getAttribute('data-name');
         if (activeNames.includes(name)) {
-          chip.className = 'player-chip-btn pixel-tap px-3.5 py-2.5 rounded-xl text-sm font-bold border transition-colors bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30 flex items-center gap-1.5';
+          chip.className = 'player-chip-btn pixel-tap px-3.5 py-2 rounded-xl text-sm font-bold border transition-colors bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30 flex items-center gap-1.5';
           chip.innerHTML = `<span>✓</span> <span>${name}</span>`;
         } else {
-          chip.className = 'player-chip-btn pixel-tap px-3.5 py-2.5 rounded-xl text-sm font-bold border transition-colors bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600 flex items-center gap-1.5';
+          chip.className = 'player-chip-btn pixel-tap px-3.5 py-2 rounded-xl text-sm font-bold border transition-colors bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600 flex items-center gap-1.5';
           chip.innerHTML = `<span>${name}</span>`;
         }
       });
@@ -609,7 +601,7 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.setAttribute('data-name', name);
-        btn.className = 'player-chip-btn pixel-tap px-3.5 py-2.5 rounded-xl text-sm font-bold border transition-colors bg-slate-800 text-slate-300 border-slate-700 flex items-center gap-1.5';
+        btn.className = 'player-chip-btn pixel-tap px-3.5 py-2 rounded-xl text-sm font-bold border transition-colors bg-slate-800 text-slate-300 border-slate-700 flex items-center gap-1.5';
         btn.innerHTML = `<span>${name}</span>`;
 
         btn.onclick = () => {
@@ -637,19 +629,43 @@
       refreshChipStates();
     }
 
+    // Sortierung im Setup (Spielerplatz tauschen)
+    window.movePlayer = function(index, direction) {
+      const inputs = Array.from(document.querySelectorAll('.player-name-input'));
+      const names = inputs.map(i => i.value);
+      const targetIndex = index + direction;
+      if (targetIndex >= 0 && targetIndex < names.length) {
+        const temp = names[index];
+        names[index] = names[targetIndex];
+        names[targetIndex] = temp;
+        names.forEach((name, idx) => {
+          inputs[idx].value = name;
+        });
+        refreshChipStates();
+      }
+    };
+
     function renderSetupPlayerInputs() {
       const container = document.getElementById('player-inputs-container');
+      const existingNames = getSelectedNamesFromInputs();
       container.innerHTML = '';
+
       for (let i = 0; i < state.playerCount; i++) {
-        const defaultName = knownPlayerNames[i] || `Spieler ${i + 1}`;
+        const defaultName = existingNames[i] || knownPlayerNames[i] || `Spieler ${i + 1}`;
         const row = document.createElement('div');
-        row.className = 'flex items-center gap-2.5';
+        row.className = 'flex items-center gap-2';
         row.innerHTML = `
-          <span class="w-10 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-extrabold text-slate-300">
+          <div class="flex flex-col gap-0.5">
+            <button type="button" onclick="movePlayer(${i}, -1)" ${i === 0 ? 'disabled' : ''}
+              class="w-7 h-5 bg-slate-800 disabled:opacity-30 rounded border border-slate-700 text-[10px] text-slate-300 font-bold flex items-center justify-center">▲</button>
+            <button type="button" onclick="movePlayer(${i}, 1)" ${i === state.playerCount - 1 ? 'disabled' : ''}
+              class="w-7 h-5 bg-slate-800 disabled:opacity-30 rounded border border-slate-700 text-[10px] text-slate-300 font-bold flex items-center justify-center">▼</button>
+          </div>
+          <span class="w-8 h-11 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-extrabold text-slate-300">
             ${i + 1}
           </span>
           <input type="text" value="${defaultName}" placeholder="Spieler ${i + 1}"
-            class="player-name-input flex-1 h-12 bg-slate-800/90 text-white font-bold text-base px-4 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 transition-colors">
+            class="player-name-input flex-1 h-11 bg-slate-800/90 text-white font-bold text-base px-3.5 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 transition-colors">
         `;
         container.appendChild(row);
       }
@@ -707,6 +723,7 @@
       state.rounds = generatePyramidRounds(names.length);
       state.currentRoundIndex = 0;
       state.phase = 'bids';
+      state.activeBidStep = 0;
       state.currentBids = {};
       state.currentTricks = {};
       state.history = [];
@@ -766,53 +783,94 @@
       }).join('');
     }
 
-    function getDealerAndFirstBidderIndexes() {
-      const dealerIndex = state.currentRoundIndex % state.players.length;
-      const firstBidderIndex = (dealerIndex + 1) % state.players.length;
-      return { dealerIndex, firstBidderIndex };
+    // Ermittelt Sitz- und Ansagereihenfolge
+    function getTurnOrder() {
+      const n = state.players.length;
+      const dealerIndex = state.currentRoundIndex % n;
+      const firstBidderIndex = (dealerIndex + 1) % n;
+
+      // Geordnete Reihenfolge ab Ansager im Uhrzeigersinn bis Geber
+      const order = [];
+      for (let i = 0; i < n; i++) {
+        order.push(state.players[(firstBidderIndex + i) % n]);
+      }
+      return {
+        dealerName: state.players[dealerIndex],
+        firstBidderName: state.players[firstBidderIndex],
+        order
+      };
     }
 
     function renderPhaseView() {
       const cards = state.rounds[state.currentRoundIndex];
-      const { dealerIndex, firstBidderIndex } = getDealerAndFirstBidderIndexes();
-      const dealerName = state.players[dealerIndex];
-      const firstBidderName = state.players[firstBidderIndex];
+      const { dealerName, firstBidderName, order } = getTurnOrder();
 
       const phaseTitle = document.getElementById('phase-title');
       const phaseSubtitle = document.getElementById('phase-subtitle');
       const actionBtn = document.getElementById('btn-main-action');
+      const backBtn = document.getElementById('btn-bid-back');
       const listContainer = document.getElementById('stepper-list-container');
       listContainer.innerHTML = '';
 
       if (state.phase === 'bids') {
-        phaseTitle.textContent = `Phase 1: Ansagen (${cards} ${cards === 1 ? 'Karte' : 'Karten'})`;
+        const activePlayer = order[state.activeBidStep];
+        const isLastBidder = (state.activeBidStep === order.length - 1); // Geber ist dran!
+
+        phaseTitle.textContent = `Ansage: ${activePlayer} ist dran`;
         phaseTitle.className = 'text-sm font-bold uppercase tracking-wider text-indigo-300';
-        phaseSubtitle.textContent = `Summe aller Ansagen darf nicht ${cards} sein`;
-        actionBtn.textContent = 'Ansagen bestätigen';
-        actionBtn.className = 'pixel-tap w-full h-14 bg-indigo-600 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/40 flex items-center justify-center';
+        phaseSubtitle.textContent = `Schritt ${state.activeBidStep + 1} von ${order.length} (Karten: ${cards})`;
 
-        let sumOthers = 0;
-        state.players.forEach(p => {
-          if (p !== dealerName) sumOthers += (state.currentBids[p] || 0);
-        });
-        const forbiddenDealerBid = cards - sumOthers;
+        // Zurück-Button einblenden wenn Schritt > 0
+        if (state.activeBidStep > 0) {
+          backBtn.classList.remove('hidden');
+        } else {
+          backBtn.classList.add('hidden');
+        }
 
+        if (isLastBidder) {
+          actionBtn.textContent = 'Ansagen abschließen';
+        } else {
+          actionBtn.textContent = 'Ansage bestätigen & Weiter';
+        }
+        actionBtn.className = 'pixel-tap flex-1 h-14 bg-indigo-600 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-indigo-600/30 border border-indigo-500/40 flex items-center justify-center';
+
+        // Berechnung der verbotenen Zahl ERST wenn der Geber dran ist
+        let forbiddenDealerBid = null;
+        if (isLastBidder) {
+          let sumOthers = 0;
+          order.slice(0, -1).forEach(p => sumOthers += (state.currentBids[p] || 0));
+          forbiddenDealerBid = cards - sumOthers;
+        }
+
+        // Spieler in normaler Tischaufstellung anzeigen
         state.players.forEach((p) => {
           const isGeber = (p === dealerName);
           const isAnsager = (p === firstBidderName);
+          const isCurrentTurn = (p === activePlayer);
+          const playerStepIndex = order.indexOf(p);
+          const hasAlreadyBid = playerStepIndex < state.activeBidStep;
           const currentVal = state.currentBids[p] || 0;
 
           let badgeHtml = '';
-          if (isAnsager) badgeHtml += `<span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">Ansager</span>`;
-          if (isGeber) badgeHtml += `<span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">Geber</span>`;
+          if (isAnsager) badgeHtml += `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">Ansager</span>`;
+          if (isGeber) badgeHtml += `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">Geber</span>`;
+          if (isCurrentTurn) badgeHtml += `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">Am Zug</span>`;
 
+          // Warnung nur anzeigen, wenn Geber aktiv dran ist
           let forbiddenWarning = '';
-          if (isGeber && forbiddenDealerBid >= 0 && forbiddenDealerBid <= cards) {
-            forbiddenWarning = `<span class="text-xs font-bold text-rose-400 block mt-0.5">⚠️ Darf nicht ${forbiddenDealerBid} ansagen</span>`;
+          if (isCurrentTurn && isGeber && forbiddenDealerBid !== null && forbiddenDealerBid >= 0 && forbiddenDealerBid <= cards) {
+            forbiddenWarning = `<span class="text-xs font-bold text-rose-400 block mt-0.5">⚠️ Darf nicht ${forbiddenDealerBid} ansagen!</span>`;
           }
 
           const card = document.createElement('div');
-          card.className = `p-3 rounded-2xl border ${isGeber ? 'bg-slate-900 border-amber-500/50' : 'bg-slate-900 border-slate-800'} flex items-center justify-between shadow-sm`;
+          // Fokus-Styling für den aktiven Spieler
+          const containerStyle = isCurrentTurn 
+            ? 'bg-slate-900 border-2 border-indigo-500 shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-500/50' 
+            : hasAlreadyBid 
+              ? 'bg-slate-900/90 border border-slate-700/80 opacity-90'
+              : 'bg-slate-900/50 border border-slate-800/80 opacity-40';
+
+          card.className = `p-3 rounded-2xl ${containerStyle} flex items-center justify-between transition-all`;
           card.innerHTML = `
             <div>
               <div class="flex items-center gap-2 flex-wrap">
@@ -822,13 +880,19 @@
               ${forbiddenWarning}
             </div>
 
-            <!-- Stepper Controls (Ergonomische 52px Touch-Buttons) -->
             <div class="flex items-center gap-2.5">
-              <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700"
-                onclick="changeBid('${p}', -1)">−</button>
-              <span class="w-8 text-center font-black text-xl text-white font-mono">${currentVal}</span>
-              <button class="pixel-tap w-12 h-12 rounded-xl bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 font-black text-2xl flex items-center justify-center active:bg-indigo-600/50"
-                onclick="changeBid('${p}', 1)">+</button>
+              ${isCurrentTurn ? `
+                <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700"
+                  onclick="changeBid('${p}', -1)">−</button>
+                <span class="w-8 text-center font-black text-xl text-white font-mono">${currentVal}</span>
+                <button class="pixel-tap w-12 h-12 rounded-xl bg-indigo-600/40 border border-indigo-500/50 text-indigo-200 font-black text-2xl flex items-center justify-center active:bg-indigo-600/60"
+                  onclick="changeBid('${p}', 1)">+</button>
+              ` : `
+                <div class="h-12 flex items-center px-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                  <span class="text-xs font-bold text-slate-400 mr-2">${hasAlreadyBid ? 'Tipp:' : 'Wartet'}</span>
+                  <span class="font-mono font-black text-lg ${hasAlreadyBid ? 'text-white' : 'text-slate-500'}">${hasAlreadyBid ? currentVal : '−'}</span>
+                </div>
+              `}
             </div>
           `;
           listContainer.appendChild(card);
@@ -836,11 +900,12 @@
 
       } else {
         // PHASE 2: ERGEBNIS / STICHE
+        backBtn.classList.add('hidden');
         phaseTitle.textContent = `Phase 2: Gemachte Stiche (${cards} im Spiel)`;
         phaseTitle.className = 'text-sm font-bold uppercase tracking-wider text-emerald-400';
         phaseSubtitle.textContent = `Summe aller Stiche muss exakt ${cards} sein`;
         actionBtn.textContent = 'Runde abrechnen';
-        actionBtn.className = 'pixel-tap w-full h-14 bg-emerald-600 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-emerald-600/30 border border-emerald-500/40 flex items-center justify-center';
+        actionBtn.className = 'pixel-tap flex-1 h-14 bg-emerald-600 text-white font-extrabold text-lg rounded-2xl shadow-lg shadow-emerald-600/30 border border-emerald-500/40 flex items-center justify-center';
 
         state.players.forEach((p) => {
           const bid = state.currentBids[p];
@@ -860,7 +925,6 @@
               </span>
             </div>
 
-            <!-- Stepper Controls -->
             <div class="flex items-center gap-2.5">
               <button class="pixel-tap w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 font-black text-2xl flex items-center justify-center active:bg-slate-700"
                 onclick="changeTrick('${p}', -1)">−</button>
@@ -896,24 +960,47 @@
       }
     };
 
-    document.getElementById('btn-main-action').onclick = () => {
-      const cards = state.rounds[state.currentRoundIndex];
-
-      if (state.phase === 'bids') {
-        let totalBids = 0;
-        state.players.forEach(p => totalBids += (state.currentBids[p] || 0));
-
-        if (totalBids === cards) {
-          alert(`Ungültige Ansagen: Die Summe aller Ansagen darf nicht ${cards} ergeben! Der Geber muss anpassen.`);
-          return;
-        }
-
-        state.phase = 'tricks';
-        state.players.forEach(p => state.currentTricks[p] = 0);
+    // Zurück zum vorherigen Ansager
+    document.getElementById('btn-bid-back').onclick = () => {
+      if (state.phase === 'bids' && state.activeBidStep > 0) {
+        state.activeBidStep -= 1;
         saveGameState();
         renderPhaseView();
+      }
+    };
+
+    // Primärbutton Klick-Logik
+    document.getElementById('btn-main-action').onclick = () => {
+      const cards = state.rounds[state.currentRoundIndex];
+      const { order } = getTurnOrder();
+
+      if (state.phase === 'bids') {
+        const isLastBidder = (state.activeBidStep === order.length - 1);
+
+        if (!isLastBidder) {
+          // Nächster Spieler ist dran
+          state.activeBidStep += 1;
+          saveGameState();
+          renderPhaseView();
+        } else {
+          // Geber schließt ab: Verbotene Summe prüfen
+          let totalBids = 0;
+          state.players.forEach(p => totalBids += (state.currentBids[p] || 0));
+
+          if (totalBids === cards) {
+            alert(`Ungültige Ansage: Die Gesamtsumme darf nicht ${cards} sein! Du als Geber musst deine Ansage anpassen.`);
+            return;
+          }
+
+          // Übergang zur Spielphase (Stiche)
+          state.phase = 'tricks';
+          state.players.forEach(p => state.currentTricks[p] = 0);
+          saveGameState();
+          renderPhaseView();
+        }
 
       } else {
+        // Phase 2 Stiche abrechnen
         let totalTricks = 0;
         state.players.forEach(p => totalTricks += (state.currentTricks[p] || 0));
 
@@ -944,6 +1031,7 @@
         if (state.currentRoundIndex + 1 < state.rounds.length) {
           state.currentRoundIndex += 1;
           state.phase = 'bids';
+          state.activeBidStep = 0; // Ansager startet wieder
           state.currentBids = {};
           state.currentTricks = {};
           saveGameState();
@@ -1042,6 +1130,7 @@
         const last = state.history.pop();
         state.currentRoundIndex = last.round - 1;
         state.phase = 'bids';
+        state.activeBidStep = 0;
         state.currentBids = { ...last.bids };
         state.currentTricks = { ...last.tricks };
         saveGameState();
@@ -1057,11 +1146,11 @@
       document.getElementById('screen-gameover').classList.add('hidden');
 
       const btnStart = document.getElementById('btn-start-game');
-      const btnAction = document.getElementById('btn-main-action');
+      const gameActionWrap = document.getElementById('game-action-buttons-wrap');
       const btnRestart = document.getElementById('btn-restart-from-gameover');
 
       btnStart.classList.add('hidden');
-      btnAction.classList.add('hidden');
+      gameActionWrap.classList.add('hidden');
       btnRestart.classList.add('hidden');
 
       if (screenId === 'screen-setup') {
@@ -1069,7 +1158,7 @@
         btnStart.classList.remove('hidden');
       } else if (screenId === 'screen-game') {
         document.getElementById('screen-game').classList.remove('hidden');
-        btnAction.classList.remove('hidden');
+        gameActionWrap.classList.remove('hidden');
       } else if (screenId === 'screen-gameover') {
         document.getElementById('screen-gameover').classList.remove('hidden');
         btnRestart.classList.remove('hidden');
