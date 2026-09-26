@@ -76,7 +76,7 @@
   <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       const swCode = `
-        const CACHE = 'koppcard-cache-v8';
+        const CACHE = 'koppcard-cache-v9';
         self.addEventListener('install', e => self.skipWaiting());
         self.addEventListener('activate', e => e.waitUntil(clients.claim()));
         self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
@@ -128,9 +128,6 @@
     <section id="screen-setup" class="space-y-4 my-auto">
       <div class="flex items-center justify-between">
         <h2 class="text-2xl font-black text-white">Neues Spiel</h2>
-        <button id="btn-open-stats-setup" class="pixel-tap text-sm font-bold text-indigo-400 bg-indigo-950/60 border border-indigo-800 px-3.5 py-2 rounded-xl">
-          📊 Statistik
-        </button>
       </div>
 
       <!-- Spieleranzahl Toggle -->
@@ -168,22 +165,18 @@
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md shrink-0 space-y-2.5">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 flex-wrap">
-            <!-- Dynamisches Phasen-Badge (Blau bei Ansage, Grün bei Abrechnen) -->
             <div id="badge-card-count" class="px-3.5 py-1.5 rounded-xl font-black text-base tracking-wide flex items-center gap-1.5 shadow-sm transition-colors duration-200 bg-indigo-600/30 border border-indigo-500/60 text-indigo-200">
               <span id="badge-card-count-icon">🎴</span>
               <span id="badge-card-count-text">1 KARTE AUSTEILEN</span>
             </div>
-            <!-- Rundenindikator -->
             <span id="badge-round-info" class="text-xs font-extrabold px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
               Runde 1 / 15
             </span>
-            <!-- Stirn Sonderregel Badge -->
             <span id="badge-stirn" class="hidden text-xs font-extrabold px-2.5 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 animate-pulse">
               🎯 Stirn
             </span>
           </div>
 
-          <!-- Scorecard Button mit Clipboard-Icon -->
           <button id="btn-open-scorecard" class="pixel-tap px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 hover:bg-slate-700 shrink-0">
             <span>📋</span> Scorecard
           </button>
@@ -271,7 +264,7 @@
     </div>
   </div>
 
-  <!-- ================= MODAL: SCORECARD (Clipboard-Icon) ================= -->
+  <!-- ================= MODAL: SCORECARD ================= -->
   <div id="modal-scorecard" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex flex-col justify-end">
     <div class="bg-slate-900 border-t border-slate-800 rounded-t-3xl max-h-[85vh] flex flex-col p-4 w-full max-w-md mx-auto">
       <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-3"></div>
@@ -354,7 +347,8 @@
       players: [],
       rounds: [],
       currentRoundIndex: 0,
-      phase: 'bids', // 'bids' oder 'tricks'
+      initialDealerOffset: 0, // Zufälliger Geber-Startwert
+      phase: 'bids',
       activeBidStep: 0,
       currentBids: {},
       currentTricks: {},
@@ -570,6 +564,7 @@
           if (saved && saved.players && saved.players.length >= 3 && saved.rounds && saved.rounds.length > 0) {
             state = saved;
             if (state.activeBidStep === undefined) state.activeBidStep = 0;
+            if (state.initialDealerOffset === undefined) state.initialDealerOffset = 0;
             return true;
           }
         }
@@ -721,9 +716,13 @@
       saveCurrentNames(names);
       renderPlayerChips();
 
+      // Geber initial per Zufall ermitteln
+      const randomDealerIndex = Math.floor(Math.random() * names.length);
+
       state.players = names;
       state.rounds = generatePyramidRounds(names.length);
       state.currentRoundIndex = 0;
+      state.initialDealerOffset = randomDealerIndex;
       state.phase = 'bids';
       state.activeBidStep = 0;
       state.currentBids = {};
@@ -787,7 +786,8 @@
 
     function getTurnOrder() {
       const n = state.players.length;
-      const dealerIndex = state.currentRoundIndex % n;
+      // Berücksichtigt den initial ausgewürfelten Geber
+      const dealerIndex = (state.initialDealerOffset + state.currentRoundIndex) % n;
       const firstBidderIndex = (dealerIndex + 1) % n;
 
       const order = [];
@@ -1192,7 +1192,6 @@
       document.getElementById('modal-stats').classList.remove('hidden');
     };
     document.getElementById('btn-open-stats-nav').onclick = openStats;
-    document.getElementById('btn-open-stats-setup').onclick = openStats;
     document.getElementById('btn-open-stats-gameover').onclick = openStats;
 
     const closeStats = () => document.getElementById('modal-stats').classList.add('hidden');
